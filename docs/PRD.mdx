@@ -1,0 +1,1176 @@
+---
+title: "Ticket & PR Tracker"
+document: "Product Requirements Document"
+version: "1.0"
+status: "Draft"
+last_updated: "2026-11-09"
+---
+
+# Ticket & PR Tracker — Product Requirements Document
+
+## 1. Document Purpose
+
+This Product Requirements Document (PRD) defines the product scope, user experience, functional requirements, data model, system behaviour, analytics, exports, Chrome extension, security expectations, and acceptance criteria for Ticket & PR Tracker.
+
+It is the primary product reference for design and implementation. Visual styling and detailed UI tokens will be defined separately in `design.md`. This document does not replace a technical architecture document.
+
+## 2. Product Summary
+
+Ticket & PR Tracker is a lightweight web application for recording work represented by Jira tickets and associating that work with GitHub pull-request (PR) links.
+
+Users create a tracker by submitting a Jira ticket URL and manually choosing its category:
+
+- **DevOps**
+- **Support**
+
+The application does not sign in to Jira, fetch Jira ticket contents, or attempt to read private Jira pages. The submitted URL is the source of truth. The application extracts the ticket identifier from the URL and uses that identifier as the tracker title. The full URL is retained and shown as the ticket reference.
+
+When work is complete, the user selects an existing tracker and submits one or more GitHub PR URLs. The tracker is then marked completed according to the application's completion workflow. GitHub OAuth and PR-content inspection are not required for the MVP.
+
+A Chrome extension provides a quick way to create a tracker from the current Jira page. The extension authenticates with the Ticket & PR Tracker application and sends the Jira URL to the application's backend. It does not connect directly to Jira or GitHub.
+
+The application provides a dashboard, tracker search and management, calendar/list views, monthly and custom-range analytics, Excel export, and PDF reporting.
+
+## 3. Product Goals
+
+### 3.1 Primary goals
+
+1. Make it quick to record a Jira ticket without manually copying ticket details.
+2. Keep the Jira ticket URL as the authoritative reference.
+3. Require an explicit user-selected category of DevOps or Support.
+4. Associate one or more GitHub PR URLs with a tracker.
+5. Provide a reliable record of when a tracker was started and completed.
+6. Show useful monthly work statistics and trends.
+7. Allow users to export their tracker and analytics data to Excel and PDF.
+8. Reduce friction when creating trackers through a Chrome extension.
+
+### 3.2 Success criteria
+
+The product is successful when a user can:
+
+- Sign in with Google.
+- Create a tracker by submitting a valid Jira URL and selecting DevOps or Support.
+- See the extracted ticket ID as the tracker title.
+- Find trackers by ticket ID or CR/PR reference.
+- Close a tracker by selecting it and submitting its GitHub PR URL(s).
+- See accurate ticket, category, PR, and cycle-time metrics.
+- Filter analytics by a preset or custom date range.
+- Download an Excel workbook and a PDF report for the selected period.
+- Create a tracker from the Chrome extension while signed in to the application.
+
+## 4. Non-Goals
+
+The following are explicitly outside the MVP scope:
+
+- Jira OAuth, Jira API integration, or Jira account connection.
+- Fetching Jira ticket titles, descriptions, comments, labels, status, assignee, or other ticket metadata.
+- Reading private Jira pages or using Jira session cookies.
+- AI classification, AI-generated descriptions, AI summaries, or AI-based categorization.
+- Microsoft AI or Cloudflare Workers AI usage.
+- GitHub OAuth or GitHub account connection.
+- Fetching PR descriptions, source code, review information, checks, or merge status.
+- Verifying that a submitted private PR exists or is merged.
+- Automatically discovering PRs associated with a Jira ticket.
+- Team-wide or organization-wide reporting in the initial release.
+- Closing trackers from the Chrome extension in the MVP.
+- Replacing Jira or GitHub as the systems where engineering work is performed.
+
+## 5. Users and Permissions
+
+### 5.1 Primary user
+
+An individual developer or team member who needs a simple personal record of Jira work and associated PR references.
+
+### 5.2 MVP roles
+
+The MVP has one application role:
+
+**User**
+- Create trackers.
+- View and search their own trackers.
+- Edit permitted tracker fields.
+- Close their own open trackers.
+- Add PR references according to the tracker lifecycle rules.
+- View their own analytics.
+- Export their own data.
+
+There is no administrator, manager, or team role in the MVP.
+
+### 5.3 Data ownership
+
+Every tracker, PR reference, analytics query, and export must be scoped to the authenticated user. A user must never be able to access another user's records by changing an ID or request parameter.
+
+## 6. Technology Constraints
+
+The existing technology choices remain unchanged, except that all AI functionality is removed.
+
+| Area | Technology |
+|---|---|
+| Main web application | Next.js |
+| UI styling | Tailwind CSS |
+| UI component system | shadcn/ui |
+| Authentication | Better Auth |
+| Authentication provider | Google OAuth |
+| Backend API | Hono.js |
+| Backend runtime | Cloudflare Workers |
+| Database | Cloudflare D1 |
+| Deployment | Cloudflare Workers |
+| Browser extension | Chrome Extension, Manifest V3 |
+| Excel generation | ExcelJS or a compatible library supported by the deployment runtime |
+| Charts | Recharts or a compatible React charting library |
+| PDF generation | A PDF generation approach compatible with the chosen Cloudflare deployment/runtime constraints |
+
+**AI removal:** Do not configure, call, provision, or depend on Microsoft AI, Cloudflare Workers AI, or any other AI service for this product. Ticket category is selected by the user.
+
+**Technology clarification:** Next.js remains the frontend framework. Alpine.js was mentioned in the earlier technology description, but it is not needed for normal Next.js/React UI interactions. Do not introduce a second UI framework unless an existing project constraint explicitly requires it. The existing `design.md` will govern the visual design.
+
+## 7. Core Terminology
+
+| Term | Meaning |
+|---|---|
+| Tracker | An application record representing one Jira ticket/work item |
+| Ticket URL | The user-submitted Jira URL; the source of truth for the ticket reference |
+| Ticket ID | The issue identifier parsed from the URL, e.g. `DEV-123` |
+| Category | User-selected work classification: DevOps or Support |
+| PR | A GitHub pull request URL submitted by the user |
+| CR reference | The pull-request reference associated with a tracker; in the MVP this is represented by the submitted PR URL and any safely parsed repository/PR number |
+| Start date | Date/time when the tracker is created, unless the user explicitly chooses another allowed start date |
+| Completion date | Date/time when the user completes the tracker in this application |
+| Cycle time | Elapsed time between start date and completion date |
+| Open tracker | A tracker that has not been completed |
+| Completed tracker | A tracker that the user has explicitly completed |
+
+## 8. Information Model and Source of Truth
+
+### 8.1 Jira ticket information
+
+The application must not attempt to read the Jira page or retrieve ticket metadata.
+
+The user supplies:
+- Jira ticket URL.
+- Category: DevOps or Support.
+
+The application derives:
+- Ticket ID from the URL, when the URL matches a supported Jira issue URL pattern.
+
+The application stores:
+- Original submitted URL.
+- Normalized URL, where safe and useful.
+- Parsed ticket ID.
+- User-selected category.
+- Application start date and status.
+
+The application must not invent or display a Jira title or description. The visible tracker title is the parsed ticket ID. The visible ticket reference/body is the Jira URL.
+
+Example:
+
+Submitted URL:
+`https://company.atlassian.net/browse/DEV-123`
+
+Displayed tracker:
+- Title: `DEV-123`
+- Ticket link: `https://company.atlassian.net/browse/DEV-123`
+- Category: `DevOps`
+
+If the ticket ID cannot be parsed confidently, the application must ask the user to correct the URL or enter the ticket ID manually. It must not create a misleading ID.
+
+### 8.2 Category
+
+The category is mandatory and selected by the user. The allowed values are:
+
+- `DEVOPS`
+- `SUPPORT`
+
+The category must be visible in create forms, tracker lists, tracker details, filters, analytics, and exports.
+
+No automatic classification is performed.
+
+### 8.3 PR information
+
+The user submits the GitHub PR URL. The application stores the URL as supplied after validation and safe normalization.
+
+The application may parse a repository identifier and PR number from a conventional GitHub URL, but this is convenience metadata only. It must not call GitHub to verify the PR or infer its state.
+
+The submitted PR URL is the source of truth for the PR reference.
+
+## 9. Main User Journeys
+
+### 9.1 Sign in
+
+1. User visits the application.
+2. User selects **Continue with Google**.
+3. Better Auth performs the Google authentication flow.
+4. The application establishes a secure session.
+5. User is redirected to the dashboard.
+6. The user can access only their own data.
+
+### 9.2 Create a tracker in the web application
+
+1. User opens Dashboard or Trackers.
+2. User selects **Create Tracker**.
+3. Application opens a dialog or dedicated form.
+4. User pastes the Jira ticket URL.
+5. User selects `DevOps` or `Support`.
+6. Application validates the URL and extracts the ticket ID.
+7. Application shows a review/confirmation state with the parsed ticket ID and category.
+8. User submits the form.
+9. Backend creates the tracker with `OPEN` status and a start timestamp.
+10. Application displays success and the new tracker appears in the list/calendar/dashboard.
+
+Required inputs:
+- Jira ticket URL.
+- Category.
+
+Start date behaviour:
+- Default to the current date/time at tracker creation.
+- If the product design allows editing the start date, the user may select a different date before or after creation according to the permissions defined below.
+- Store timestamps consistently in UTC and display them in the user's local timezone.
+
+### 9.3 Create a tracker from the Chrome extension
+
+1. User opens a Jira ticket in Chrome.
+2. User clicks the Ticket & PR Tracker extension icon.
+3. Extension checks whether the user has an authenticated application session.
+4. If not authenticated, the extension provides a sign-in action that opens the main application.
+5. Once authenticated, extension reads the active tab URL only after the user opens the extension UI.
+6. Extension pre-fills the Jira URL field with the current tab URL.
+7. User confirms or edits the URL.
+8. User selects DevOps or Support.
+9. User clicks **Create Tracker**.
+10. Extension sends the URL and category to the application backend using the application's authenticated flow.
+11. Backend validates and creates the tracker.
+12. Extension displays success or an actionable error and provides a link to open the tracker in the main application.
+
+The extension must not scrape the Jira page, inspect page content, read Jira cookies, or connect to Jira APIs.
+
+### 9.4 Close a tracker and add PR references
+
+1. User selects **Close Tracker** or an equivalent action.
+2. Application displays the user's open trackers.
+3. User searches for or selects the tracker to complete.
+4. Application displays the selected ticket ID and Jira URL for confirmation.
+5. User submits one or more GitHub PR URLs.
+6. Backend validates URL format and checks for duplicates within the applicable scope.
+7. Application saves the PR references.
+8. User confirms completion.
+9. Backend marks the tracker `COMPLETED` and records `completed_at`.
+10. Dashboard and analytics are updated.
+
+A tracker must not be closed merely because a PR URL was pasted into an unfinished form. Completion occurs only after the user confirms the close action.
+
+### 9.5 View and search trackers
+
+1. User opens the Trackers page.
+2. Application displays a paginated list of the user's trackers.
+3. User searches by ticket ID or PR/CR reference.
+4. User may filter by category, status, or date range.
+5. Selecting a result opens the tracker details view.
+
+Search results must remain concise. They should show ticket ID, category, associated CR/PR reference(s), and status. Do not show Jira-derived title or description fields.
+
+## 10. Functional Requirements
+
+### 10.1 Authentication
+
+**FR-AUTH-01 — Google sign-in**
+The application must support Google sign-in through Better Auth.
+
+**FR-AUTH-02 — Session**
+The application must maintain a secure authenticated session across supported web application routes.
+
+**FR-AUTH-03 — Sign-out**
+Users must be able to sign out.
+
+**FR-AUTH-04 — Protected routes**
+Dashboard, tracker, analytics, and export functionality must require authentication.
+
+**FR-AUTH-05 — Ownership enforcement**
+All reads and writes must be scoped to the authenticated user on the backend, not merely hidden in the frontend.
+
+### 10.2 Tracker creation
+
+**FR-TRK-01 — Create action**
+The application must provide a clear Create Tracker action.
+
+**FR-TRK-02 — Jira URL input**
+The create form must accept a Jira issue URL.
+
+**FR-TRK-03 — URL validation**
+The backend must validate the URL protocol and supported Jira issue URL format. It must reject malformed URLs and unsafe schemes.
+
+**FR-TRK-04 — Ticket ID extraction**
+The application must parse the issue key from supported URL patterns, including common Jira Cloud paths such as `/browse/PROJECT-123`.
+
+**FR-TRK-05 — Manual correction**
+If parsing fails or is ambiguous, the user must be able to correct the URL or provide the ticket ID manually. Any manually entered ID must be stored distinctly from an automatically parsed ID if this distinction is retained in the data model.
+
+**FR-TRK-06 — Category selection**
+The user must select exactly one category: DevOps or Support.
+
+**FR-TRK-07 — Start date**
+The tracker must receive a start timestamp at creation. If editing is supported, the interface must make the selected date clear.
+
+**FR-TRK-08 — Initial status**
+New trackers must have `OPEN` status.
+
+**FR-TRK-09 — Duplicate prevention**
+The application should prevent accidental duplicate trackers for the same user and Jira ticket ID. If duplicates are intentionally allowed, the user must receive a clear warning and explicitly confirm.
+
+**FR-TRK-10 — No Jira content retrieval**
+The application must not fetch Jira page contents, Jira metadata, or Jira APIs.
+
+### 10.3 Tracker viewing and editing
+
+**FR-TRK-11 — Tracker list**
+Users must be able to view their trackers in a list/table.
+
+**FR-TRK-12 — Tracker detail**
+A tracker detail view must show:
+- Ticket ID.
+- Jira URL as a clickable external reference.
+- Category.
+- Start date.
+- Status.
+- Associated PR URL(s).
+- Completion date, if completed.
+- Cycle time, if completed.
+
+**FR-TRK-13 — Edit category**
+Users may change a tracker category, subject to the product's edit rules. Changes must be reflected in analytics and exports.
+
+**FR-TRK-14 — Edit start date**
+If enabled, users may correct the start date. Changes must recalculate cycle time and be reflected in reports.
+
+**FR-TRK-15 — No Jira title/description**
+No Jira title or description fields should be requested, fetched, generated, or displayed.
+
+### 10.4 PR reference management
+
+**FR-PR-01 — Add PR URL**
+Users must be able to submit a GitHub PR URL when closing a tracker.
+
+**FR-PR-02 — Multiple PRs**
+A tracker may have multiple PR URLs.
+
+**FR-PR-03 — URL validation**
+The application must validate that submitted values are valid HTTPS GitHub pull-request URL formats. The MVP may support `github.com/{owner}/{repo}/pull/{number}`.
+
+**FR-PR-04 — No GitHub API dependency**
+The application must not require GitHub OAuth or call GitHub APIs in the MVP.
+
+**FR-PR-05 — PR count**
+PR count must be based on unique stored PR records, not on inferred GitHub state.
+
+**FR-PR-06 — Duplicate prevention**
+The same normalized PR URL must not be counted twice for the same tracker. The product should also warn if the same PR is already associated with another tracker belonging to the same user.
+
+**FR-PR-07 — PR display**
+Show the submitted PR URL as a clickable external link. If repository and PR number were parsed from the URL, they may be shown as compact reference metadata.
+
+**FR-PR-08 — No PR content**
+Do not fetch PR title, body, author, labels, reviews, checks, merge state, or code.
+
+### 10.5 Tracker completion
+
+**FR-CLOSE-01 — Select open tracker**
+The close workflow must allow selection only from the user's open trackers.
+
+**FR-CLOSE-02 — Add PR references**
+The close workflow must accept one or more PR URLs.
+
+**FR-CLOSE-03 — Completion confirmation**
+The user must explicitly confirm completion.
+
+**FR-CLOSE-04 — Completion timestamp**
+The backend must record `completed_at` when the tracker is successfully completed.
+
+**FR-CLOSE-05 — Completed state**
+The tracker status must change to `COMPLETED`.
+
+**FR-CLOSE-06 — Completion integrity**
+The completion operation must be idempotent or otherwise protected against duplicate submissions.
+
+**FR-CLOSE-07 — Reopening**
+Reopening a completed tracker is not required for the MVP. If later supported, it must be an explicit action and must define how prior completion timestamps and analytics are handled.
+
+**FR-CLOSE-08 — Post-completion PRs**
+The MVP should define whether additional PRs can be attached after completion. Recommended default: allow adding a reference to a completed tracker without changing its completion date, while recording the PR's own added timestamp. This behaviour must be consistent in the UI and exports.
+
+### 10.6 Search and filtering
+
+**FR-SEARCH-01 — Ticket ID search**
+Users must be able to search by ticket ID.
+
+**FR-SEARCH-02 — PR/CR search**
+Users must be able to search by PR number, repository reference, or full PR URL where available.
+
+**FR-SEARCH-03 — Category filter**
+Users must be able to filter DevOps and Support trackers.
+
+**FR-SEARCH-04 — Status filter**
+Users must be able to filter Open and Completed trackers.
+
+**FR-SEARCH-05 — Date filter**
+Users must be able to filter by start date and completion date.
+
+**FR-SEARCH-06 — Minimal result fields**
+Search results must show ticket ID, category, CR/PR reference(s), and status. The Jira URL may be accessible through the ticket ID or a link affordance. No title or description is required.
+
+### 10.7 Dashboard
+
+**FR-DASH-01 — Summary cards**
+The dashboard must show:
+- Total trackers in the selected period.
+- Completed trackers.
+- Open trackers.
+- DevOps trackers.
+- Support trackers.
+- Total unique PR references.
+
+**FR-DASH-02 — Default period**
+The dashboard's default reporting period is the current calendar month.
+
+**FR-DASH-03 — Recent activity**
+The dashboard should show recently created or completed trackers.
+
+**FR-DASH-04 — Quick actions**
+The dashboard must provide quick access to Create Tracker and Close Tracker.
+
+**FR-DASH-05 — Period selection**
+Where dashboard metrics are period-dependent, the user must be able to select a period or navigate to the full Analytics page.
+
+### 10.8 Calendar and tracker list
+
+**FR-VIEW-01 — List view**
+Provide a table/list view with ticket ID, category, start date, completion date, PR count, cycle time, and status.
+
+**FR-VIEW-02 — Calendar view**
+Provide a calendar view showing tracker start and completion activity.
+
+**FR-VIEW-03 — Category distinction**
+DevOps and Support must be visually distinguishable. The exact colors and visual tokens are defined in `design.md`.
+
+**FR-VIEW-04 — Calendar interaction**
+Selecting a calendar item must open its tracker detail view.
+
+**FR-VIEW-05 — View switching**
+Users should be able to switch between list and calendar views without losing their current filters where practical.
+
+### 10.9 Analytics
+
+**FR-AN-01 — Dedicated page**
+The application must provide a dedicated Analytics page or tab.
+
+**FR-AN-02 — Monthly default**
+Analytics must default to the current calendar month.
+
+**FR-AN-03 — Date presets**
+Provide:
+- Current month.
+- Previous month.
+- Last 3 months.
+- Last 6 months.
+- Current year.
+- Custom date range.
+
+**FR-AN-04 — Date range consistency**
+All summary cards and graphs must use the selected date range and clearly define which date field drives each metric.
+
+**FR-AN-05 — Ticket completion**
+Show the number of trackers completed in the selected period.
+
+**FR-AN-06 — Ticket creation/start**
+Show the number of trackers created or started in the selected period.
+
+**FR-AN-07 — Category distribution**
+Show DevOps and Support counts and percentages.
+
+**FR-AN-08 — PR count**
+Show the number of unique PR references added in the selected period.
+
+**FR-AN-09 — Cycle time**
+Show average cycle time for trackers completed in the selected period.
+
+**FR-AN-10 — Open age**
+Optionally show the age of currently open trackers, calculated as current time minus start date.
+
+**FR-AN-11 — Empty states**
+When no data exists for a selected period, display a helpful empty state rather than misleading zero-filled graphs without context.
+
+### 10.10 Required analytics visualizations
+
+1. **Monthly tracker activity — bar chart**
+   - Trackers started per month.
+   - Trackers completed per month.
+   - These must be separate series.
+
+2. **DevOps vs Support — doughnut chart**
+   - Count of DevOps trackers.
+   - Count of Support trackers.
+   - Optional percentages.
+
+3. **Monthly PR activity — bar chart**
+   - Unique PR references added per month, based on PR `created_at`.
+
+4. **Completion trend — line chart**
+   - Completed trackers over time, grouped by completion date.
+
+5. **Average cycle time — line or bar chart**
+   - Average cycle time for trackers completed in each month.
+
+6. **Work distribution — stacked bar chart**
+   - DevOps and Support tracker counts grouped by month, using a clearly stated date basis.
+
+The UI must label chart axes, units, and date periods. Do not imply that PR count equals merged PR count.
+
+### 10.11 Excel export
+
+**FR-EXP-01 — Download Excel**
+Provide a Download Excel action on the Analytics page.
+
+**FR-EXP-02 — Selected range**
+The workbook must reflect the currently selected reporting period.
+
+**FR-EXP-03 — Workbook sheets**
+The workbook must contain the following sheets:
+
+**Sheet: Overview**
+- Report name.
+- Generated date.
+- Selected reporting period.
+- Total trackers started.
+- Total trackers completed.
+- Open trackers as of export time.
+- DevOps count.
+- Support count.
+- PR references added in the period.
+- Average cycle time for trackers completed in the period.
+
+**Sheet: Trackers**
+- Ticket ID.
+- Jira URL.
+- Category.
+- Start date.
+- Completion date.
+- Status.
+- PR count.
+- Cycle time.
+
+**Sheet: PR References**
+- Ticket ID.
+- Jira URL.
+- Category.
+- PR URL.
+- Repository, if parsed.
+- PR number, if parsed.
+- PR added date.
+
+**Sheet: Monthly Analytics**
+- Month.
+- Trackers started.
+- Trackers completed.
+- DevOps count.
+- Support count.
+- PR references added.
+- Average cycle time.
+
+**FR-EXP-04 — Formatting**
+The workbook should include:
+- Clear sheet names.
+- Bold/frozen header rows.
+- Filters on tabular data.
+- Appropriate column widths.
+- Consistent date and duration formats.
+- Readable number formats.
+- No unsupported formulas or external data connections.
+
+**FR-EXP-05 — Data integrity**
+Exported records and aggregates must match the selected period rules used by the Analytics page.
+
+### 10.12 PDF export
+
+**FR-PDF-01 — Download PDF**
+Provide a Download PDF action on the Analytics page.
+
+**FR-PDF-02 — Report content**
+The PDF should include:
+1. Report title.
+2. Reporting period.
+3. Generation date.
+4. Executive summary metrics.
+5. Monthly tracker activity graph.
+6. DevOps vs Support distribution.
+7. Monthly PR activity graph.
+8. Completion trend.
+9. Average cycle time.
+10. A concise tracker summary or appendix, where practical.
+
+**FR-PDF-03 — Selected range**
+PDF output must respect the selected date range.
+
+**FR-PDF-04 — Presentation quality**
+The report must use readable typography, consistent spacing, chart labels, page numbers where appropriate, and a print-friendly layout.
+
+**FR-PDF-05 — Honest metric labels**
+The PDF must use labels such as “PR references submitted” rather than “merged PRs” or “PRs delivered,” because the MVP does not verify GitHub state.
+
+### 10.13 Chrome extension
+
+**FR-EXT-01 — Manifest**
+The extension must use Chrome Manifest V3.
+
+**FR-EXT-02 — Application-only integration**
+The extension communicates only with the Ticket & PR Tracker application.
+
+**FR-EXT-03 — No Jira/GitHub connection**
+The extension must not connect to Jira or GitHub APIs, read their cookies, or scrape page content.
+
+**FR-EXT-04 — Authentication**
+The extension must support a secure authenticated connection to the application. Authentication must use the application's approved Better Auth/session flow or a narrowly scoped application-issued extension credential. Do not copy raw website cookies into extension storage.
+
+**FR-EXT-05 — Active tab URL**
+When the user opens the extension popup, it may read the active tab URL to prefill the Jira URL input. It must not read the page DOM or page contents.
+
+**FR-EXT-06 — Category**
+The extension must let the user select DevOps or Support.
+
+**FR-EXT-07 — Create tracker**
+The extension must submit the Jira URL and category to the application backend.
+
+**FR-EXT-08 — Feedback**
+The extension must show success, validation errors, authentication errors, and network errors.
+
+**FR-EXT-09 — Open tracker**
+After successful creation, the extension should provide a link to open the created tracker in the main application.
+
+**FR-EXT-10 — Minimal permissions**
+Request only the Chrome permissions needed for the popup, active tab URL, and application communication. Avoid broad host permissions.
+
+**Future extension scope**
+- Select and close an existing tracker.
+- Submit one or more GitHub PR URLs.
+- Search trackers.
+- View a compact tracker status.
+
+Closing trackers from the extension is not part of the MVP.
+
+## 11. Date and Analytics Rules
+
+Correct date semantics are essential. Each metric must use a defined timestamp.
+
+### 11.1 Start date
+
+- Default start date is the tracker creation timestamp.
+- It is not inferred from Jira.
+- If the user can edit it, preserve the fact that the date was manually changed if auditability is required.
+- Display in the user's local timezone.
+
+### 11.2 Completion date
+
+- Completion date is the timestamp at which the user confirms completion in the application.
+- It is not the GitHub merge date.
+- It is not the date on which the Jira ticket was created or updated.
+
+### 11.3 PR added date
+
+- Each PR reference has its own `created_at` timestamp representing when the URL was added to the tracker.
+- PR activity charts use this timestamp.
+
+### 11.4 Cycle time
+
+`Cycle time = completed_at - start_date`
+
+- Only completed trackers have a final cycle time.
+- Open trackers must not be included in average completed cycle time.
+- Store or calculate durations consistently, preferably in seconds or minutes, and format for display as days/hours.
+- If a start date is after the completion date, prevent the invalid update or flag the record for correction.
+
+### 11.5 Monthly grouping
+
+Metrics must not use one generic date field for all charts.
+
+| Metric | Date used |
+|---|---|
+| Trackers started | `start_date` |
+| Trackers completed | `completed_at` |
+| PR references added | PR `created_at` |
+| Average cycle time | `completed_at`, using trackers completed in the month |
+| Open tracker age | Current time minus `start_date` |
+
+For a custom range, include records whose relevant metric timestamp falls within the selected range. The UI and exports must use the same definitions.
+
+### 11.6 Open trackers in a period
+
+For a selected period, the “Open trackers” card should be explicitly defined as either:
+- Trackers currently open at the time of viewing; or
+- Trackers that were open at the end of the selected period.
+
+Recommended MVP behaviour: show **Currently open** as a current-state metric and label it accordingly. Do not present it as a historical end-of-period count unless historical status snapshots are implemented.
+
+## 12. User Interface and Pages
+
+Visual styling must follow the separately maintained `design.md`. The pages and content below define product behaviour, not final visual styling.
+
+### 12.1 Landing page
+
+- Product name and concise explanation.
+- Primary Google sign-in CTA.
+- Short feature overview.
+- No requirement for a complex marketing site in the MVP.
+
+### 12.2 Dashboard
+
+- Current-month summary.
+- Quick Create Tracker action.
+- Quick Close Tracker action.
+- Recent tracker activity.
+- Monthly chart or compact summary.
+- Navigation to Trackers and Analytics.
+
+### 12.3 Trackers page
+
+- List/table and calendar view.
+- Search by ticket ID or PR reference.
+- Category filter.
+- Status filter.
+- Date filters.
+- Create Tracker action.
+- Row action to open details.
+
+### 12.4 Create Tracker dialog/page
+
+Fields:
+- Jira ticket URL.
+- Category selector: DevOps / Support.
+- Start date if editable.
+
+Show parsed ticket ID before final submission. Do not show Jira title or description.
+
+### 12.5 Tracker details page
+
+Show:
+- Ticket ID as the page heading.
+- Jira URL as the primary ticket reference.
+- Category.
+- Start date.
+- Status.
+- Associated PR URLs.
+- PR count.
+- Completion date.
+- Cycle time.
+
+### 12.6 Close Tracker dialog/page
+
+- Search/select open tracker.
+- Display ticket ID and Jira URL.
+- Add one or more PR URL inputs.
+- Validate duplicates and URL format.
+- Explicit completion confirmation.
+
+### 12.7 Analytics page
+
+- Date range selector.
+- Summary cards.
+- Required charts.
+- Excel export.
+- PDF export.
+- Clear definitions for each metric.
+
+### 12.8 Settings page
+
+- Account information.
+- Sign-out.
+- Any supported application preferences, such as timezone/display preferences, if implemented.
+
+## 13. Data Model
+
+The following is a logical product data model. Exact SQL types and Better Auth table details are implementation decisions.
+
+### 13.1 User
+
+Better Auth owns the authentication-related records. Application records reference the authenticated user ID.
+
+### 13.2 Tracker
+
+| Field | Suggested type | Required | Description |
+|---|---|---:|---|
+| `id` | TEXT/UUID | Yes | Unique tracker identifier |
+| `user_id` | TEXT | Yes | Owner |
+| `ticket_id` | TEXT | Yes | Parsed or user-corrected issue key |
+| `jira_url` | TEXT | Yes | Original/normalized Jira issue URL |
+| `category` | TEXT/ENUM | Yes | `DEVOPS` or `SUPPORT` |
+| `start_date` | INTEGER/TIMESTAMP | Yes | Work start timestamp |
+| `start_date_source` | TEXT | Yes | `CREATED` or `MANUAL`, if tracking provenance |
+| `status` | TEXT/ENUM | Yes | `OPEN` or `COMPLETED` |
+| `completed_at` | INTEGER/TIMESTAMP | No | Completion timestamp |
+| `created_at` | INTEGER/TIMESTAMP | Yes | Record creation timestamp |
+| `updated_at` | INTEGER/TIMESTAMP | Yes | Last update timestamp |
+
+Recommended constraints:
+- Primary key on `id`.
+- Foreign key to user.
+- Category check constraint.
+- Status check constraint.
+- Index on `(user_id, start_date)`.
+- Index on `(user_id, completed_at)`.
+- Index on `(user_id, status)`.
+- Index on `(user_id, category)`.
+- Unique `(user_id, ticket_id)` if duplicate trackers are not allowed.
+
+### 13.3 PullRequestReference
+
+| Field | Suggested type | Required | Description |
+|---|---|---:|---|
+| `id` | TEXT/UUID | Yes | Unique PR reference |
+| `tracker_id` | TEXT | Yes | Associated tracker |
+| `user_id` | TEXT | Yes | Owner; supports ownership checks |
+| `pr_url` | TEXT | Yes | Submitted GitHub PR URL |
+| `normalized_pr_url` | TEXT | Yes | Canonical form for duplicate checks |
+| `repository` | TEXT | No | Parsed owner/repository |
+| `pr_number` | INTEGER | No | Parsed PR number |
+| `created_at` | INTEGER/TIMESTAMP | Yes | Time URL was added |
+
+Recommended constraints:
+- Primary key on `id`.
+- Foreign key to tracker.
+- Unique `(tracker_id, normalized_pr_url)`.
+- Index on `(user_id, created_at)`.
+- Index on `(user_id, pr_number)` where useful.
+
+### 13.4 Optional audit events
+
+For reliable reporting and future support, consider a small `TrackerEvent` table for category changes, start-date changes, PR additions, and completion. This is optional for MVP unless a history/audit view is required.
+
+## 14. API Requirements
+
+All application APIs are implemented with Hono.js and run on Cloudflare Workers. Every endpoint must validate the authenticated user and enforce record ownership.
+
+Suggested endpoints:
+
+### 14.1 Trackers
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/trackers` | Create tracker |
+| `GET` | `/api/trackers` | List/search/filter trackers |
+| `GET` | `/api/trackers/:id` | Get tracker detail |
+| `PATCH` | `/api/trackers/:id` | Update allowed tracker fields |
+| `POST` | `/api/trackers/:id/complete` | Complete tracker and add PR references |
+| `GET` | `/api/trackers/:id/prs` | List PR references |
+| `POST` | `/api/trackers/:id/prs` | Add PR reference(s) |
+
+### 14.2 Analytics
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/analytics/overview` | Summary cards |
+| `GET` | `/api/analytics/activity` | Started/completed time series |
+| `GET` | `/api/analytics/categories` | DevOps/Support distribution |
+| `GET` | `/api/analytics/pr-activity` | PR reference activity |
+| `GET` | `/api/analytics/cycle-time` | Cycle-time series |
+
+All analytics endpoints should accept consistent `from` and `to` date parameters, plus any required timezone context. Validate date ranges and avoid accepting unbounded queries without limits.
+
+### 14.3 Exports
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/exports/excel` | Generate Excel workbook |
+| `GET` | `/api/exports/pdf` | Generate PDF report |
+
+Exports must use the same analytics definitions and ownership checks as the dashboard.
+
+### 14.4 API behaviour
+
+- Use consistent success and error response shapes.
+- Validate request bodies on the server.
+- Return useful validation errors.
+- Use pagination for tracker lists.
+- Make completion operations safe against repeated submissions.
+- Do not trust `user_id` supplied by the client; derive it from the authenticated session.
+- Do not expose database errors or secrets to clients.
+
+## 15. URL Validation and Normalization
+
+### 15.1 Jira URLs
+
+- Accept HTTPS URLs only.
+- Support the configured Jira host or an explicitly allowed set of Jira hosts.
+- Parse the issue key from supported URL paths.
+- Reject `javascript:`, `data:`, `file:`, and other non-HTTPS schemes.
+- Do not fetch the URL from the backend.
+- Do not follow redirects or perform network requests to validate a Jira URL.
+- Store the submitted URL and a normalized representation if needed.
+- If multiple Jira domains are used, provide a controlled configuration rather than accepting arbitrary domains without validation.
+
+### 15.2 GitHub PR URLs
+
+- Accept HTTPS GitHub pull-request URL formats.
+- Expected common pattern: `https://github.com/{owner}/{repo}/pull/{number}`.
+- Do not fetch the URL.
+- Do not verify repository visibility or PR state.
+- Parse owner, repository, and PR number only from a valid supported URL.
+- Normalize trailing slashes and harmless URL variations for duplicate detection.
+- Preserve a safe clickable URL for display.
+
+## 16. Security and Privacy Requirements
+
+1. Use Better Auth for application authentication.
+2. Require authentication for all private application data and APIs.
+3. Enforce user ownership in backend database queries.
+4. Never read or store Jira or GitHub session cookies.
+5. Never ask users to paste passwords or access tokens.
+6. The Chrome extension must not access Jira/GitHub cookies or page DOM.
+7. Restrict extension permissions to the minimum required.
+8. Use HTTPS for application communication.
+9. Validate and normalize all submitted URLs.
+10. Do not fetch arbitrary user-supplied URLs from the backend; this avoids unnecessary SSRF exposure.
+11. Protect create, completion, and export endpoints with appropriate rate limits.
+12. Avoid exposing private tracker data in logs.
+13. Do not include secrets in frontend bundles or extension packages.
+14. Ensure exports are generated only for the authenticated user.
+15. Define data retention and account deletion behaviour before production launch.
+
+## 17. Non-Functional Requirements
+
+### 17.1 Performance
+
+- Common dashboard and tracker-list requests should feel responsive for normal individual-user datasets.
+- Use pagination for large lists.
+- Add indexes for common filters and date-based queries.
+- Analytics should aggregate stored records without contacting Jira or GitHub.
+- Avoid loading all tracker records into the browser to calculate summary metrics.
+
+### 17.2 Reliability
+
+- Prevent duplicate trackers and duplicate PR references according to the chosen uniqueness rules.
+- Make tracker completion safe against accidental repeat requests.
+- Provide recoverable error messages when a save or export fails.
+- Do not mark a tracker completed if its required PR URL validation or database operation fails.
+- Keep analytics consistent with persisted records.
+
+### 17.3 Accessibility
+
+- Forms must have labels and keyboard-accessible controls.
+- Category selection must not rely on color alone.
+- Charts must include accessible labels or accompanying summaries.
+- Dialogs must support keyboard navigation and focus management.
+- Status indicators must include text.
+
+### 17.4 Compatibility
+
+- Main application should support current desktop versions of major browsers.
+- Chrome extension targets Chrome Manifest V3.
+- Responsive layouts should support tablet and mobile browser widths where practical.
+
+### 17.5 Maintainability
+
+- Keep tracker lifecycle rules in the backend/domain layer.
+- Keep analytics metric definitions consistent across dashboard and exports.
+- Separate export generation from UI rendering.
+- Keep the Chrome extension thin; business logic remains in the application backend.
+
+## 18. Error and Empty-State Behaviour
+
+The application must provide understandable messages for:
+
+- Invalid Jira URL.
+- Ticket ID cannot be extracted.
+- Unsupported Jira URL host or path.
+- Category not selected.
+- Duplicate tracker.
+- Invalid GitHub PR URL.
+- Duplicate PR reference.
+- Tracker no longer open.
+- Tracker not found or not owned by the user.
+- Session expired.
+- Network/API unavailable.
+- Excel generation failed.
+- PDF generation failed.
+- No trackers in the selected date range.
+- No PR references in the selected date range.
+
+Do not silently discard user input after a recoverable error.
+
+## 19. Reporting Definitions and Caveats
+
+The product reports activity recorded inside Ticket & PR Tracker. It does not independently verify Jira or GitHub state.
+
+Therefore:
+- “Completed tracker” means the user marked the tracker completed in this application.
+- “PR count” means the number of unique PR URLs stored.
+- “PR activity” means when the user added PR URLs to the application.
+- “Merged PRs” must not be shown because merge state is not checked.
+- “Jira ticket title” must not be shown because Jira content is not retrieved.
+- “Ticket ID” is the identifier parsed from the Jira URL.
+- “DevOps” and “Support” are user-selected categories, not AI classifications.
+
+These definitions must be used consistently in the dashboard, Excel workbook, PDF report, and any future presentation.
+
+## 20. Product Roadmap
+
+### Phase 1 — Foundation and authentication
+
+- Set up the Next.js application.
+- Set up Hono.js on Cloudflare Workers.
+- Configure Cloudflare D1.
+- Integrate Better Auth and Google OAuth.
+- Implement protected application routes.
+- Implement user-scoped database access.
+
+### Phase 2 — Tracker management
+
+- Implement Jira URL validation and ticket ID parsing.
+- Implement category selection.
+- Implement tracker creation.
+- Implement tracker list and details.
+- Implement search and filters.
+- Implement category/start-date editing rules.
+- Implement duplicate prevention.
+
+### Phase 3 — PR tracking and completion
+
+- Implement open tracker selection.
+- Implement PR URL validation and normalization.
+- Support multiple PR references per tracker.
+- Implement explicit completion confirmation.
+- Record completion timestamps.
+- Calculate cycle time.
+
+### Phase 4 — Dashboard and calendar
+
+- Implement summary cards.
+- Implement recent activity.
+- Implement list and calendar views.
+- Implement category/status/date filters.
+
+### Phase 5 — Analytics
+
+- Implement date-range presets and custom ranges.
+- Implement started/completed counts.
+- Implement DevOps/Support distribution.
+- Implement PR reference activity.
+- Implement completion trend.
+- Implement cycle-time analysis.
+- Validate all metric definitions.
+
+### Phase 6 — Exports
+
+- Generate Excel workbook with required sheets.
+- Generate PDF analytics report.
+- Ensure exports respect selected date range.
+- Validate export data against dashboard totals.
+
+### Phase 7 — Chrome extension
+
+- Build Manifest V3 extension.
+- Implement application authentication.
+- Prefill current Jira tab URL.
+- Implement category selection.
+- Submit tracker creation to application API.
+- Add success/error states and open-tracker link.
+- Review extension permissions and security.
+
+### Phase 8 — Testing and release
+
+- Unit tests for URL parsing and normalization.
+- API tests for tracker lifecycle.
+- Authorization and data-isolation tests.
+- Analytics aggregation tests.
+- Excel/PDF validation.
+- Chrome extension tests.
+- Responsive and accessibility checks.
+- Production deployment and monitoring.
+
+## 21. Acceptance Criteria
+
+### Authentication
+- [ ] User can sign in with Google.
+- [ ] Protected pages require a valid session.
+- [ ] User can sign out.
+- [ ] One user cannot read or modify another user's records.
+
+### Tracker creation
+- [ ] User can submit a Jira ticket URL.
+- [ ] Application parses the ticket ID from supported URL patterns.
+- [ ] Ticket ID is displayed as the tracker title.
+- [ ] Original Jira URL is retained and clickable.
+- [ ] User must choose DevOps or Support.
+- [ ] New tracker receives a start date and OPEN status.
+- [ ] No Jira page contents are fetched.
+- [ ] No Jira title or description is requested or displayed.
+- [ ] Duplicate behaviour is explicit and tested.
+
+### PR tracking and completion
+- [ ] User can select one of their open trackers.
+- [ ] User can submit a GitHub PR URL.
+- [ ] User can submit multiple PR URLs for one tracker.
+- [ ] Invalid URLs are rejected with a useful message.
+- [ ] Duplicate PR URLs are not counted twice for a tracker.
+- [ ] User explicitly confirms completion.
+- [ ] Completion timestamp is saved.
+- [ ] Cycle time is calculated correctly.
+- [ ] No GitHub OAuth or PR-content access is required.
+
+### Search and dashboard
+- [ ] Search works by ticket ID.
+- [ ] Search works by PR/CR reference where parsed.
+- [ ] Category and status filters work.
+- [ ] Dashboard summary cards are accurate.
+- [ ] Tracker list and calendar show the same underlying records.
+
+### Analytics
+- [ ] Current month is the default period.
+- [ ] Preset date ranges work.
+- [ ] Custom date range works.
+- [ ] Started and completed metrics use their correct timestamps.
+- [ ] PR activity uses PR-reference creation timestamps.
+- [ ] DevOps/Support distribution is accurate.
+- [ ] Average cycle time excludes open trackers.
+- [ ] Empty states are handled correctly.
+
+### Exports
+- [ ] Excel workbook contains Overview, Trackers, PR References, and Monthly Analytics sheets.
+- [ ] Excel data matches the selected period.
+- [ ] PDF includes summary metrics and required charts.
+- [ ] PDF data matches the selected period.
+- [ ] Exports contain only the authenticated user's records.
+- [ ] Reports do not claim PR merge verification.
+
+### Chrome extension
+- [ ] Extension uses Manifest V3.
+- [ ] Extension can authenticate with the application.
+- [ ] Extension can prefill the current Jira URL.
+- [ ] User can select DevOps or Support.
+- [ ] Extension can create a tracker through the application backend.
+- [ ] Extension displays success and error states.
+- [ ] Extension does not read Jira/GitHub cookies or scrape page content.
+- [ ] Closing trackers from the extension is not required for MVP.
+
+## 22. Open Product Decisions
+
+These decisions should be confirmed before implementation is finalized:
+
+1. **Allowed Jira domains:** Is there one company Jira domain, or should users be able to configure multiple Jira hosts?
+2. **Ticket ID fallback:** If a ticket ID cannot be parsed from the URL, should users manually enter it, or should the application reject the URL?
+3. **Duplicate tickets:** Should one Jira ticket be allowed to have multiple trackers for the same user? Recommended default: no.
+4. **Start date editing:** Should users be allowed to backdate or correct the start date after tracker creation?
+5. **PRs after completion:** Recommended default is to allow additional PR references after completion without changing the original completion date.
+6. **Reopening:** Should completed trackers remain permanently completed in the MVP, or should reopening be supported?
+7. **CR terminology:** Confirm whether “CR reference” means GitHub Pull Request reference in the UI and reports, or whether CR is a separate internal reference type.
+8. **PDF generation:** Confirm whether PDF generation should run entirely in the browser or through a server-side-compatible PDF service/library. The choice must be compatible with Cloudflare Workers constraints.
+9. **Timezone:** Use the browser's local timezone by default, or allow a user preference to be saved.
+
+## 23. Final Product Definition
+
+Ticket & PR Tracker is a simple, user-driven system for recording Jira work and associated GitHub pull-request references.
+
+The product does not integrate with Jira or GitHub APIs in the MVP. It does not use AI. The user supplies the Jira URL, selects DevOps or Support, and later supplies the relevant PR URL(s).
+
+The Jira URL remains the source of truth. The ticket ID parsed from that URL is the tracker title. The category is explicitly selected by the user. PR URLs are stored and counted without inspecting PR contents or verifying merge status.
+
+The core workflow is:
+
+**Sign in → Create Tracker → Paste Jira URL → Select DevOps or Support → Track Work → Select Tracker → Add PR URL(s) → Confirm Completion → View Monthly Analytics → Export Excel/PDF.**
+
+The Chrome extension is a lightweight companion that authenticates with this application and makes the Create Tracker workflow available from a Jira browser tab. All core business logic, persistence, analytics, and reporting remain in the main application.

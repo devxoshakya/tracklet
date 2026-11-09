@@ -1,1 +1,140 @@
 @import "@tracklet /ui/globals.css";
+
+/* ---------------------------------------------------------------------------
+   Tracklet design tokens (docs/design.md §2).
+   Light theme mirrors the Hikari-derived landing palette; dark theme is the
+   same composition translated onto a deep slate canvas. Values are shadcn
+   semantic variables, so every variant is available as a Tailwind utility
+   (bg-background, text-muted-foreground, bg-primary, …).
+--------------------------------------------------------------------------- */
+:root {
+  --background: #f4f6f7;
+  --foreground: #111318;
+
+  --card: #ffffff;
+  --card-foreground: #111318;
+
+  --popover: #ffffff;
+  --popover-foreground: #111318;
+
+  /* Interactive accent — blue is the only "action" color */
+  --primary: #1a5cff;
+  --primary-foreground: #ffffff;
+
+  --secondary: #e8ecef;
+  --secondary-foreground: #111318;
+
+  --muted: #eef2f4;
+  --muted-foreground: #6b6f73;
+
+  --accent: #e6f0ff;
+  --accent-foreground: #123f9e;
+
+  --destructive: #d93025;
+
+  --border: #d7dadd;
+  --input: #c9ced4;
+  --ring: #1a5cff;
+
+  --chart-1: #1a5cff;
+  --chart-2: #ff672f;
+  --chart-3: #34a853;
+  --chart-4: #6b4fd8;
+  --chart-5: #8a8985;
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #0f1113;
+  --foreground: #e7e9eb;
+
+  --card: #15181c;
+  --card-foreground: #e7e9eb;
+
+  --popover: #191c20;
+  --popover-foreground: #e7e9eb;
+
+  /* Brighter blue for AA contrast on dark canvas */
+  --primary: #3b76ff;
+  --primary-foreground: #ffffff;
+
+  --secondary: #1b1f24;
+  --secondary-foreground: #e7e9eb;
+
+  --muted: #171b1f;
+  --muted-foreground: #9aa0a6;
+
+  --accent: #16243c;
+  --accent-foreground: #8fb4ff;
+
+  --destructive: #ff5449;
+
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 14%);
+  --ring: #3b76ff;
+}
+
+/* ---------------------------------------------------------------------------
+   3D buttons (design.md §6.1 "3D press")
+   A solid bottom edge (like a keyboard keycap) + a soft elevation shadow.
+   On :active the button presses down: translateY(3px) and the shadow
+   collapses onto the edge. Honors prefers-reduced-motion (transform only).
+--------------------------------------------------------------------------- */
+.btn-3d {
+  --btn3d-edge: rgb(17 19 24 / 14%);
+  --btn3d-raise-y: 3px;
+
+  box-shadow:
+    0 var(--btn3d-raise-y) 0 0 var(--btn3d-edge),
+    0 10px 20px rgb(15 17 20 / 12%),
+    0 2px 4px rgb(15 17 20 / 8%);
+  transition:
+    box-shadow var(--t-fast, 120ms) ease,
+    transform var(--t-fast, 120ms) ease,
+    background-color 120ms ease;
+}
+.dark .btn-3d {
+  --btn3d-edge: rgb(0 0 0 / 40%);
+}
+.btn-3d:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 calc(var(--btn3d-raise-y) + 1px) 0 0 var(--btn3d-edge),
+    0 16px 28px rgb(15 17 20 / 16%),
+    0 3px 6px rgb(15 17 20 / 8%);
+}
+.btn-3d:active:not(:disabled) {
+  transform: translateY(var(--btn3d-raise-y));
+  box-shadow:
+    0 0 0 0 var(--btn3d-edge),
+    0 2px 6px rgb(15 17 20 / 14%);
+}
+
+/* Primary (blue) variant: edge is a darker step of --primary */
+.btn-3d-primary {
+  --btn3d-edge: #0c3fd4;
+}
+.dark .btn-3d-primary {
+  --btn3d-edge: #1e4ec2;
+}
+
+/* Light-surface variant (white card button): edge is a cooler gray step */
+.btn-3d-light {
+  --btn3d-edge: #ccd3d9;
+}
+.dark .btn-3d-light {
+  --btn3d-edge: rgb(0 0 0 / 40%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-3d,
+  .btn-3d:hover,
+  .btn-3d:active {
+    transition: none;
+    transform: none;
+  }
+  .btn-3d:active:not(:disabled) {
+    box-shadow: 0 0 0 0 var(--btn3d-edge), 0 2px 6px rgb(15 17 20 / 14%);
+  }
+}

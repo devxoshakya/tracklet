@@ -1,8 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import "../index.css";
-import Header from "@/components/header";
 import Providers from "@/components/providers";
 import PwaRegistration from "@/components/pwa-registration";
 
@@ -17,8 +16,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "tracklet ",
-  description: "tracklet ",
+  title: "Tracklet — Every Jira ticket, tracked to done",
+  description:
+    "Track Jira tickets and the GitHub pull requests that close them. Monthly stats, cycle time, and Excel & PDF exports.",
+  icons: {
+    icon: "/icon.svg",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f6f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1113" },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({
@@ -30,13 +41,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <PwaRegistration />
-
-        <Providers>
-          <div className="grid grid-rows-[auto_1fr] h-svh">
-            <Header />
-            {children}
-          </div>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

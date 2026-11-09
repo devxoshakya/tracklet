@@ -1,16 +1,50 @@
-"use client";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 
-import SignInForm from "@/components/sign-in-form";
-import SignUpForm from "@/components/sign-up-form";
+import LoginPage from "./login-client";
 
-export default function LoginPage() {
-  const [showSignIn, setShowSignIn] = useState(false);
+/**
+ * Only allow relative in-app paths as post-login targets — never absolute or
+ * protocol-relative URLs (open-redirect guard).
+ */
+export function sanitizeRedirect(value: string | undefined): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/dashboard";
+  }
+  return value;
+}
 
-  return showSignIn ? (
-    <SignInForm onSwitchToSignUp={() => setShowSignIn(false)} />
-  ) : (
-    <SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
+/**
+ * Sign-in route (adapted from the Hikari login design). Signed-in users never
+ * see the login page; anonymous users get the Google-only sign-in (no
+ * credentials, no GitHub — PRD FR-AUTH-01), and any `redirect` target survives
+ * the authentication round trip.
+ */
+export default async function LoginRoute({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>;
+}) {
+  // Public page: on auth-server trouble degrade to the anonymous view.
+  let session: { user: { id: string } } | null = null;
+  try {
+    session = await authClient.getSession({
+      fetchOptions: { headers: await headers(), throw: true },
+    });
+  } catch {
+    session = null;
+  }
+
+  if (session?.user) {
+    redirect("/dashboard");
+  }
+
+  const { redirect: redirectParam } = await searchParams;
+  return (
+    <LoginPage
+      initialRedirect={redirectParam ? sanitizeRedirect(redirectParam) : undefined}
+    />
   );
 }

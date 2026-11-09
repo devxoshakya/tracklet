@@ -6,6 +6,8 @@ export type AuthConfig = {
   BETTER_AUTH_URL: string;
   BETTER_AUTH_SECRET: string;
   CORS_ORIGIN: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 };
 
 export function createAuth(
@@ -18,7 +20,13 @@ export function createAuth(
       provider: "sqlite",
     }),
     trustedOrigins: [env.CORS_ORIGIN, ...desktopOrigins],
-    emailAndPassword: { enabled: true },
+    // Google-only authentication (PRD FR-AUTH-01); no credentials, no GitHub.
+    socialProviders: {
+      google: {
+        clientId: env.GOOGLE_CLIENT_ID ?? "",
+        clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
+      },
+    },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     advanced: {
