@@ -29,48 +29,57 @@ export function zodFields(error: ZodError): Record<string, string> {
   return fields;
 }
 
-/** Wrap a handler so every throw becomes a consistent JSON error response. */
+/** Convert any thrown error into the shared JSON error envelope. */
+export function toErrorResponse(error: unknown): Response {
+  if (error instanceof HttpError) {
+    const body: ApiErrorDTO = {
+      error: {
+        code: error.code,
+        message: error.message,
+        ...(error.fields ? { fields: error.fields } : {}),
+        ...(error.resource !== undefined ? { resource: error.resource } : {}),
+      },
+    };
+    return new Response(JSON.stringify(body), {
+      status: error.status,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  if (error instanceof z.ZodError) {
+    const body: ApiErrorDTO = {
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Check the highlighted fields.",
+        fields: zodFields(error),
+      },
+    };
+    return new Response(JSON.stringify(body), {
+      status: 422,
+      headers: { "content-type": "application/json" },
+    });
+  }
+  console.error("[api] unexpected error", error);
+  const body: ApiErrorDTO = {
+    error: { code: "SERVER_ERROR", message: "Something went wrong." },
+  };
+  return new Response(JSON.stringify(body), {
+    status: 500,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+/**
+ * Wrap a handler so every throw becomes a consistent JSON error response.
+ * (Middleware throws are caught separately by `app.onError`, which also uses
+ * `toErrorResponse` — see index.ts.)
+ */
 export async function handleRoute<T>(
   fn: () => Promise<T>,
 ): Promise<T | Response> {
   try {
     return await fn();
   } catch (error) {
-    if (error instanceof HttpError) {
-      const body: ApiErrorDTO = {
-        error: {
-          code: error.code,
-          message: error.message,
-          ...(error.fields ? { fields: error.fields } : {}),
-          ...(error.resource !== undefined ? { resource: error.resource } : {}),
-        },
-      };
-      return new Response(JSON.stringify(body), {
-        status: error.status,
-        headers: { "content-type": "application/json" },
-      });
-    }
-    if (error instanceof z.ZodError) {
-      const body: ApiErrorDTO = {
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Check the highlighted fields.",
-          fields: zodFields(error),
-        },
-      };
-      return new Response(JSON.stringify(body), {
-        status: 422,
-        headers: { "content-type": "application/json" },
-      });
-    }
-    console.error("[api] unexpected error", error);
-    const body: ApiErrorDTO = {
-      error: { code: "SERVER_ERROR", message: "Something went wrong." },
-    };
-    return new Response(JSON.stringify(body), {
-      status: 500,
-      headers: { "content-type": "application/json" },
-    });
+    return toErrorResponse(error);
   }
 }
 

@@ -370,12 +370,18 @@ trackers.post("/:id/complete", async (c) => {
     }
 
     // Sequential writes (the D1 adapter has no interactive transactions).
-    // Uniqueness on (trackerId, urlNormalized) keeps double-submits from
-    // double-counting, and completing an already-completed tracker never
-    // moves completedAt — idempotent per FR-CLOSE-06.
+    // Upsert keeps re-closing idempotent (FR-CLOSE-06): a PR already on this
+    // tracker is a no-op, and completing an already-completed tracker never
+    // moves completedAt.
     for (const ref of refs) {
-      await db.trackerPr.create({
-        data: {
+      await db.trackerPr.upsert({
+        where: {
+          trackerId_urlNormalized: {
+            trackerId: tracker.id,
+            urlNormalized: ref.normalized,
+          },
+        },
+        create: {
           trackerId: tracker.id,
           userId,
           url: ref.normalized,
@@ -384,6 +390,7 @@ trackers.post("/:id/complete", async (c) => {
           repoName: ref.repo,
           prNumber: ref.prNumber,
         },
+        update: {},
       });
     }
     const wasOpen = tracker.status === "OPEN";

@@ -5,6 +5,7 @@ import { logger } from "hono/logger";
 import { ENV } from "./env.server";
 import type { ApiEnv } from "./env.api";
 import { withServices } from "./env.api";
+import { toErrorResponse } from "./lib/http";
 import { requireAuth } from "./middleware/auth";
 import { createAuth } from "./services";
 import { dashboard } from "./routes/dashboard";
@@ -13,6 +14,9 @@ import { trackers } from "./routes/trackers";
 const app = new Hono<ApiEnv>();
 
 app.use(logger());
+// Middleware throws (401 from requireAuth, failures in withServices, zod
+// parsing in handlers) all funnel into the shared JSON error envelope.
+app.onError((error) => toErrorResponse(error));
 app.use(
   "/*",
   cors({
