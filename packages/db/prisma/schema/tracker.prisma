@@ -1,0 +1,68 @@
+// Tracklet domain models (PRD §8): a tracker links a Jira ticket to the
+// GitHub PR references that closed it. The Jira URL is the source of truth —
+// no Jira content is ever fetched or stored (PRD FR-TRK-10, FR-PR-08).
+
+model Tracker {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Parsed Jira issue key (e.g. "DEV-123") — the visible tracker title (§8.1).
+  ticketId          String
+  // How the ID was obtained: PARSED from the URL or MANUAL entry (FR-TRK-05).
+  ticketIdSource    String    @default("PARSED")
+  // Submitted URL (source of truth) plus a normalized variant when safe (§8.1).
+  jiraUrl           String
+  jiraUrlNormalized String?
+
+  // Exactly one of DEVOPS | SUPPORT, user-selected (§8.2, FR-TRK-06).
+  category          String
+  // OPEN | COMPLETED. New trackers start OPEN (FR-TRK-08).
+  status            String    @default("OPEN")
+
+  // §11.1 start timestamp (creation time by default, editable while OPEN).
+  startedAt         DateTime  @default(now())
+  // §11.2 completion timestamp, recorded only on explicit close (FR-CLOSE-04).
+  completedAt       DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  prs TrackerPr[]
+
+  // FR-TRK-09: prevent accidental duplicates of the same Jira ticket per user.
+  @@unique([userId, ticketId])
+  @@index([userId, status])
+  @@index([userId, startedAt])
+  @@index([userId, completedAt])
+  @@map("tracker")
+}
+
+model TrackerPr {
+  id       String  @id @default(cuid())
+  trackerId String
+  tracker  Tracker @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  // Denormalized owner for cross-tracker duplicate warnings (FR-PR-06).
+  userId   String
+
+  // Submitted URL is the source of truth (§8.3). No GitHub API is ever called.
+  url           String
+  // Canonical form (lowercased host, no query/hash/trailing slash) for dedupe.
+  urlNormalized String
+  // Convenience metadata parsed from the URL — never verified remotely (§8.3).
+  repoOwner     String?
+  repoName      String?
+  prNumber      Int?
+
+  // Own added timestamp (FR-CLOSE-08: post-completion references don't move
+  // the tracker's completion date).
+  addedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // FR-PR-06: the same normalized URL can't be counted twice per tracker.
+  @@unique([trackerId, urlNormalized])
+  @@index([userId, urlNormalized])
+  @@index([trackerId, addedAt])
+  @@map("tracker_pr")
+}
