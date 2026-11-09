@@ -1,0 +1,25 @@
+{
+  "name": "@tracklet /db",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@prisma/adapter-d1": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@tracklet /config": "workspace:*",
+    "prisma": "^7.10.0",
+    "typescript": "catalog:",
+    "varlock": "catalog:"
+  }
+}

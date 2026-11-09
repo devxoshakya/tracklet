@@ -1,0 +1,40 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "check-types": "tsc --noEmit",
+    "start": "next start",
+    "dev:bare": "next dev --port 3001",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "env:generate": "varlock codegen"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.6",
+    "@swc/helpers": "^0.5.23",
+    "@tanstack/react-form": "^1.33.5",
+    "@tracklet /ui": "workspace:*",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "better-auth": "catalog:",
+    "lucide-react": "catalog:",
+    "next": "^16.3.4",
+    "next-themes": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sonner": "catalog:",
+    "varlock": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@tailwindcss/postcss": "catalog:",
+    "@tracklet /config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "wrangler": "^4.152.0"
+  }
+}
