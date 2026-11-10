@@ -62,3 +62,24 @@ export async function api<T>(
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
+
+/** Fetch a binary download (exports) with the same auth/error handling. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    let payload: ApiErrorDTO["error"] | undefined;
+    try {
+      payload = ((await response.json()) as ApiErrorDTO)?.error;
+    } catch {
+      // Non-JSON error — fall through to the generic message.
+    }
+    throw new ApiError(
+      response.status,
+      payload?.code ?? "SERVER_ERROR",
+      payload?.message ?? "Download failed. Please try again.",
+    );
+  }
+  return response.blob();
+}

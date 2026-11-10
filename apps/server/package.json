@@ -13,7 +13,9 @@
     "@tracklet /auth": "workspace:*",
     "@tracklet /db": "workspace:*",
     "better-auth": "catalog:",
+    "exceljs": "^4.4.0",
     "hono": "^4.13.7",
+    "pdf-lib": "^1.17.1",
     "varlock": "catalog:",
     "zod": "catalog:"
   },

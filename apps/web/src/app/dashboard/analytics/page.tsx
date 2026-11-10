@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { CalendarIcon } from "lucide-react";
+import { Suspense, useState } from "react";
+import {
+  CalendarIcon,
+  FileSpreadsheetIcon,
+  FileTextIcon,
+} from "lucide-react";
 import {
   Area,
   Bar,
@@ -39,6 +43,7 @@ import {
 import type { DateRange } from "react-day-picker";
 
 import { useAnalytics, istAnchor, istMonthRange } from "@/hooks/trackers";
+import { apiBlob } from "@/lib/api";
 import { formatCycleTime } from "@/lib/format";
 
 /**
@@ -164,6 +169,7 @@ function AnalyticsContent() {
             to={range.to}
             onApply={(from, to) => setCustom(from, to)}
           />
+          <ExportButtons from={range.from} to={range.to} />
         </div>
       </div>
 
@@ -329,6 +335,56 @@ function PresetPills({
           }`}
         >
           {p.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** FR-EXP-01 / FR-PDF-01: download buttons for the selected period. */
+function ExportButtons({ from, to }: { from: string; to: string }) {
+  const [busy, setBusy] = useState<"excel" | "pdf" | null>(null);
+
+  const download = async (kind: "excel" | "pdf") => {
+    setBusy(kind);
+    try {
+      const blob = await apiBlob(
+        `/exports/${kind}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      );
+      const suffix = `${from.slice(0, 10)}_to_${to.slice(0, 10)}`;
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download =
+        kind === "excel" ? `tracklet-export-${suffix}.xlsx` : `tracklet-report-${suffix}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+      toast.success(kind === "excel" ? "Excel workbook downloaded" : "PDF report downloaded");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Download failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {(
+        [
+          { kind: "excel", label: "Excel", Icon: FileSpreadsheetIcon },
+          { kind: "pdf", label: "PDF", Icon: FileTextIcon },
+        ] as const
+      ).map(({ kind, label, Icon }) => (
+        <button
+          key={kind}
+          type="button"
+          disabled={busy !== null}
+          onClick={() => void download(kind)}
+          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Icon className="size-3.5 text-primary" />
+          {busy === kind ? "Preparing…" : label}
         </button>
       ))}
     </div>
