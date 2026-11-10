@@ -14,5 +14,5 @@
     "128": "icons/icon128.png"
   },
   "permissions": ["activeTab"],
-  "host_permissions": ["http://localhost:3000/*"]
+  "host_permissions": ["https://tracklet-server-live-devxoshakya-cjztvkdlzw57ggpd.devxoshakya.workers.dev/*"]
 }

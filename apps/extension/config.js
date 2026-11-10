@@ -6,6 +6,6 @@
 //
 // FR-EXT-02/10: these are the ONLY origins the extension talks to.
 const CONFIG = {
-  serverOrigin: "http://localhost:3000",
-  webOrigin: "http://localhost:3001",
+  serverOrigin: "https://tracklet-server-live-devxoshakya-cjztvkdlzw57ggpd.devxoshakya.workers.dev",
+  webOrigin: "https://tracklet-web-live-devxoshakya-4qpu2t7yncdoitcp.devxoshakya.workers.dev",
 };
