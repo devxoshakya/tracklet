@@ -49,11 +49,5 @@
     "typescript": "catalog:",
     "varlock": "catalog:"
   },
-  "packageManager": "bun@1.4.2",
-  "overrides": {
-    "effect": "4.0.6",
-    "@effect/platform-bun": "4.0.6",
-    "@effect/platform-node": "4.0.6",
-    "@effect/platform-node-shared": "4.0.6"
-  }
+  "packageManager": "bun@1.4.2"
 }
