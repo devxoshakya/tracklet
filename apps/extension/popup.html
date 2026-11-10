@@ -8,16 +8,25 @@
   </head>
   <body>
     <header class="head">
-      <span class="logo" aria-hidden="true">▦</span>
+      <img src="icons/icon48.png" class="logo" alt="" width="20" height="20" />
       <span class="title">Tracklet</span>
       <a id="open-app" class="open-app" href="#" target="_blank" hidden>Open app</a>
     </header>
 
     <main id="view">
-      <!-- Filled by popup.js: signin | form | confirm | done | error -->
       <p id="status" class="status" role="status"></p>
 
-      <section id="form" hidden>
+      <!-- Mode tabs — auto-picked from the tab URL (Jira → ticket, GitHub PR → PR) -->
+      <div id="tabs" class="tabs" role="tablist" aria-label="Action" hidden>
+        <button type="button" id="tab-ticket" class="tab selected" role="tab" aria-selected="true">
+          Track ticket
+        </button>
+        <button type="button" id="tab-pr" class="tab" role="tab" aria-selected="false">
+          Add PR
+        </button>
+      </div>
+
+      <section id="ticket" hidden>
         <label class="label" for="jira-url">Jira ticket URL</label>
         <input
           id="jira-url"
@@ -41,16 +50,40 @@
         <button id="track" class="primary" type="button">Track this ticket</button>
       </section>
 
+      <section id="pr" hidden>
+        <label class="label" for="pr-url">GitHub PR URL</label>
+        <input
+          id="pr-url"
+          type="url"
+          placeholder="https://github.com/owner/repo/pull/123"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p id="pr-preview" class="preview" hidden></p>
+
+        <label class="label" for="tracker-search">Attach to tracker</label>
+        <input
+          id="tracker-search"
+          type="search"
+          placeholder="Search ticket ID…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div id="tracker-list" class="list" role="listbox" aria-label="Trackers"></div>
+
+        <button id="add-pr" class="primary" type="button" disabled>Add PR</button>
+      </section>
+
       <section id="confirm" hidden>
         <p id="confirm-text" class="confirm-text"></p>
         <div class="row">
-          <button id="force" class="primary" type="button">Create anyway</button>
+          <button id="confirm-yes" class="primary" type="button">Yes, do it</button>
           <a id="open-existing" class="secondary" href="#" target="_blank">Open existing</a>
         </div>
       </section>
 
       <section id="done" hidden>
-        <p class="confirm-text ok">✓ Tracker created.</p>
+        <p id="done-text" class="confirm-text ok"></p>
         <a id="open-tracker" class="primary link" href="#" target="_blank">Open tracker</a>
       </section>
 

@@ -9,8 +9,14 @@
  */
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { parseJiraTicketUrl as extensionParse } from "../lib/parse.js";
-import { parseJiraTicketUrl as packageParse } from "../../../packages/db/src/urls";
+import {
+  parseGitHubPrUrl as extensionParsePr,
+  parseJiraTicketUrl as extensionParse,
+} from "../lib/parse.js";
+import {
+  parseGitHubPrUrl as packageParsePr,
+  parseJiraTicketUrl as packageParse,
+} from "../../../packages/db/src/urls";
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -59,8 +65,8 @@ for (const match of js.matchAll(/\$\("([\w-]+)"\)/g)) {
   assert(html.includes(`id="${match[1]}"`), `popup.html has #${match[1]} (used by popup.js)`);
 }
 
-// 3. Parser parity (extension mirror === package).
-const cases = [
+// 3. Parser parity (extension mirror === package) — Jira + GitHub PR.
+const jiraCases = [
   "https://team.atlassian.net/browse/DEV-101",
   "https://team.atlassian.net/browse/DEV-101/",
   "https://team.atlassian.net/browse/DEV-101?foo=bar",
@@ -74,12 +80,36 @@ const cases = [
   "https://team.atlassian.net/browse/1-DEV",
   "",
 ];
-for (const url of cases) {
+for (const url of jiraCases) {
   const a = JSON.stringify(extensionParse(url));
   const b = JSON.stringify(packageParse(url));
   assert(a === b, `parser parity for "${url}": extension=${a} package=${b}`);
 }
-assert(extensionParse(cases[0])?.ticketId === "DEV-101", "ticket key normalizes to upper case");
-assert(packageParse(cases[5])?.ticketId === "DEV-9", "lowercase key upper-cased by package too");
+assert(extensionParse(jiraCases[0])?.ticketId === "DEV-101", "ticket key normalizes to upper case");
+assert(packageParse(jiraCases[5])?.ticketId === "DEV-9", "lowercase key upper-cased by package too");
 
-console.log(`extension self-check: manifest, html/css refs, and ${cases.length} parser-parity cases passed`);
+const prCases = [
+  "https://github.com/owner/repo/pull/123",
+  "https://github.com/owner/repo/pull/123/",
+  "https://github.com/owner/repo/pull/123#issuecomment-1",
+  "http://github.com/owner/repo/pull/9",
+  "https://www.github.com/o.r-e/po_9/pull/7",
+  "https://github.com/owner/repo/issues/123",
+  "https://gitlab.com/owner/repo/pull/123",
+  "https://github.com/owner/repo/pull/abc",
+  "",
+];
+for (const url of prCases) {
+  const a = JSON.stringify(extensionParsePr(url));
+  const b = JSON.stringify(packageParsePr(url));
+  assert(a === b, `PR parser parity for "${url}": extension=${a} package=${b}`);
+}
+const prRef = extensionParsePr(prCases[0]);
+assert(
+  prRef && prRef.owner === "owner" && prRef.repo === "repo" && prRef.prNumber === 123,
+  "PR ref extracts owner/repo/number",
+);
+
+console.log(
+  `extension self-check: manifest, html refs, and ${jiraCases.length + prCases.length} parser-parity cases passed`,
+);
