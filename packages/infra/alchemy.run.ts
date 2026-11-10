@@ -29,7 +29,7 @@ export const server = Cloudflare.Worker("server", {
 export type ServerEnv = Cloudflare.InferEnv<typeof server>;
 
 export default Alchemy.Stack(
-  "tracklet ",
+  "tracklet",
   {
     providers: Cloudflare.providers(),
     state: Cloudflare.state(),

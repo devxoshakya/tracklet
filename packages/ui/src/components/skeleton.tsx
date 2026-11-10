@@ -1,4 +1,4 @@
-import { cn } from "@tracklet /ui/lib/utils";
+import { cn } from "@tracklet/ui/lib/utils";
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (

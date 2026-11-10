@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { describe, expect, test } from "bun:test";
 import { PDFDocument } from "pdf-lib";
 
-import type { AnalyticsDTO } from "@tracklet /db/schemas";
+import type { AnalyticsDTO } from "@tracklet/db/schemas";
 
 import { buildExcelWorkbook, excelFileName } from "./excel";
 import { buildPdfReport } from "./pdf";

@@ -14,7 +14,7 @@ import type {
   DashboardDTO,
   TrackerDTO,
   TrackerListDTO,
-} from "@tracklet /db/schemas";
+} from "@tracklet/db/schemas";
 
 import { api } from "@/lib/api";
 

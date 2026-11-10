@@ -1,5 +1,5 @@
-import type { AnalyticsDTO } from "@tracklet /db/schemas";
-import { analyticsQuerySchema } from "@tracklet /db/schemas";
+import type { AnalyticsDTO } from "@tracklet/db/schemas";
+import { analyticsQuerySchema } from "@tracklet/db/schemas";
 import { Hono } from "hono";
 
 import type { ApiEnv } from "../env.api";

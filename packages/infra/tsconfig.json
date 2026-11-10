@@ -1,4 +1,4 @@
 {
-  "extends": "@tracklet /config/tsconfig.base.json",
+  "extends": "@tracklet/config/tsconfig.base.json",
   "include": ["alchemy.run.ts"]
 }

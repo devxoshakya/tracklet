@@ -1,5 +1,5 @@
 {
-  "name": "@tracklet /db",
+  "name": "@tracklet/db",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -17,7 +17,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tracklet /config": "workspace:*",
+    "@tracklet/config": "workspace:*",
     "prisma": "^7.10.0",
     "typescript": "catalog:",
     "varlock": "catalog:"

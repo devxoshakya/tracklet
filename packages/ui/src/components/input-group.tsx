@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "@tracklet /ui/components/button";
-import { Input } from "@tracklet /ui/components/input";
-import { Textarea } from "@tracklet /ui/components/textarea";
-import { cn } from "@tracklet /ui/lib/utils";
+import { Button } from "@tracklet/ui/components/button";
+import { Input } from "@tracklet/ui/components/input";
+import { Textarea } from "@tracklet/ui/components/textarea";
+import { cn } from "@tracklet/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 

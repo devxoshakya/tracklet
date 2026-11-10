@@ -1,5 +1,5 @@
-import { createAuth as createConfiguredAuth } from "@tracklet /auth";
-import { type Database, createPrismaClient } from "@tracklet /db";
+import { createAuth as createConfiguredAuth } from "@tracklet/auth";
+import { type Database, createPrismaClient } from "@tracklet/db";
 
 import { ENV } from "./env.server";
 

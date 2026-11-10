@@ -1,18 +1,18 @@
-import type { Tracker, TrackerPr } from "@tracklet /db/models";
+import type { Tracker, TrackerPr } from "@tracklet/db/models";
 
 import type {
   TrackerDTO,
   TrackerListDTO,
   TrackerPrDTO,
-} from "@tracklet /db/schemas";
+} from "@tracklet/db/schemas";
 import {
   prAddSchema,
   trackerCompleteSchema,
   trackerCreateSchema,
   trackerListQuerySchema,
   trackerUpdateSchema,
-} from "@tracklet /db/schemas";
-import { parseGitHubPrUrl, parseJiraTicketUrl } from "@tracklet /db/urls";
+} from "@tracklet/db/schemas";
+import { parseGitHubPrUrl, parseJiraTicketUrl } from "@tracklet/db/urls";
 import { Hono } from "hono";
 
 import type { ApiEnv } from "../env.api";

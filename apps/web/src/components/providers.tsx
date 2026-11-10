@@ -1,6 +1,6 @@
 "use client";
 
-import { Toaster } from "@tracklet /ui/components/sonner";
+import { Toaster } from "@tracklet/ui/components/sonner";
 
 import { ThemeProvider } from "./theme-provider";
 import QueryProvider from "./query-provider";

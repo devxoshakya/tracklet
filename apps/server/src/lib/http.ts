@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { ApiErrorDTO } from "@tracklet /db/schemas";
+import type { ApiErrorDTO } from "@tracklet/db/schemas";
 import { ZodError } from "zod";
 
 /**

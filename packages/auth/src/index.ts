@@ -1,4 +1,4 @@
-import type { Database } from "@tracklet /db";
+import type { Database } from "@tracklet/db";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 

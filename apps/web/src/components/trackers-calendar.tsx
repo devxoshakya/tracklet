@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { Skeleton } from "@tracklet /ui/components/skeleton";
+import { Skeleton } from "@tracklet/ui/components/skeleton";
 
 import { useTrackersList, IST_MS } from "@/hooks/trackers";
-import type { TrackerDTO } from "@tracklet /db/schemas";
+import type { TrackerDTO } from "@tracklet/db/schemas";
 
 /**
  * Calendar month view (PRD FR-VIEW-02..04), Untitled UI style: Sunday-first

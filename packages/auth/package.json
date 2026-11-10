@@ -1,5 +1,5 @@
 {
-  "name": "@tracklet /auth",
+  "name": "@tracklet/auth",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -9,12 +9,12 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@tracklet /db": "workspace:*",
+    "@tracklet/db": "workspace:*",
     "better-auth": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tracklet /config": "workspace:*",
+    "@tracklet/config": "workspace:*",
     "typescript": "catalog:"
   }
 }

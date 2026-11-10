@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@prisma/adapter-d1": "^7.10.0",
-    "@tracklet /auth": "workspace:*",
-    "@tracklet /db": "workspace:*",
+    "@tracklet/auth": "workspace:*",
+    "@tracklet/db": "workspace:*",
     "better-auth": "catalog:",
     "exceljs": "^4.4.0",
     "hono": "^4.13.7",
@@ -21,8 +21,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
-    "@tracklet /config": "workspace:*",
-    "@tracklet /infra": "workspace:*",
+    "@tracklet/config": "workspace:*",
+    "@tracklet/infra": "workspace:*",
     "@types/node": "catalog:",
     "tsdown": "^0.23.0",
     "typescript": "catalog:",

@@ -1,4 +1,4 @@
-import type { AnalyticsDTO } from "@tracklet /db/schemas";
+import type { AnalyticsDTO } from "@tracklet/db/schemas";
 import { z } from "zod";
 
 import type { ApiEnv } from "../env.api";

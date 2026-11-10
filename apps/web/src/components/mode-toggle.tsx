@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@tracklet /ui/components/button";
+import { Button } from "@tracklet/ui/components/button";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";

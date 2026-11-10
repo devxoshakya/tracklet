@@ -6,7 +6,7 @@ import { authClient } from "@/lib/auth-client";
 import RedirectIfAuthenticated from "@/components/redirect-if-authenticated";
 import BrandMark from "@/components/brand-mark";
 import { ModeToggle } from "@/components/mode-toggle";
-import { cn } from "@tracklet /ui/lib/utils";
+import { cn } from "@tracklet/ui/lib/utils";
 
 const mountainImage = "/tracklet-mountains.png";
 

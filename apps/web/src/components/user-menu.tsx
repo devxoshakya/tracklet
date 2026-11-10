@@ -6,9 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@tracklet /ui/components/dropdown-menu";
-import { Skeleton } from "@tracklet /ui/components/skeleton";
-import { Button } from "@tracklet /ui/components/button";
+} from "@tracklet/ui/components/dropdown-menu";
+import { Skeleton } from "@tracklet/ui/components/skeleton";
+import { Button } from "@tracklet/ui/components/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

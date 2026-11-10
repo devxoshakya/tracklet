@@ -1,5 +1,5 @@
-import type { AnalyticsDTO } from "@tracklet /db/schemas";
-import { IST_OFFSET_MINUTES } from "@tracklet /db/schemas";
+import type { AnalyticsDTO } from "@tracklet/db/schemas";
+import { IST_OFFSET_MINUTES } from "@tracklet/db/schemas";
 
 import type { ApiEnv } from "../env.api";
 

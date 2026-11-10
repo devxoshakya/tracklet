@@ -15,21 +15,21 @@ import { toast } from "sonner";
 
 import type { DateRange } from "react-day-picker";
 
-import { Calendar } from "@tracklet /ui/components/calendar";
+import { Calendar } from "@tracklet/ui/components/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@tracklet /ui/components/popover";
+} from "@tracklet/ui/components/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@tracklet /ui/components/select";
-import { Input } from "@tracklet /ui/components/input";
-import { Skeleton } from "@tracklet /ui/components/skeleton";
+} from "@tracklet/ui/components/select";
+import { Input } from "@tracklet/ui/components/input";
+import { Skeleton } from "@tracklet/ui/components/skeleton";
 
 import CreateTrackerDialog from "@/components/create-tracker-dialog";
 import TrackersCalendar from "@/components/trackers-calendar";

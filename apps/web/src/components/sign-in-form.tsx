@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
-import { Button } from "@tracklet /ui/components/button";
-import { Input } from "@tracklet /ui/components/input";
-import { Label } from "@tracklet /ui/components/label";
+import { Button } from "@tracklet/ui/components/button";
+import { Input } from "@tracklet/ui/components/input";
+import { Label } from "@tracklet/ui/components/label";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";

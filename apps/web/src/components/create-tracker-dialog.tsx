@@ -10,10 +10,10 @@ import {
   DialogDescription,
   DialogTitle,
   DialogTrigger,
-} from "@tracklet /ui/components/dialog";
-import { Button } from "@tracklet /ui/components/button";
-import { Input } from "@tracklet /ui/components/input";
-import { Label } from "@tracklet /ui/components/label";
+} from "@tracklet/ui/components/dialog";
+import { Button } from "@tracklet/ui/components/button";
+import { Input } from "@tracklet/ui/components/input";
+import { Label } from "@tracklet/ui/components/label";
 
 import { useCreateTracker } from "@/hooks/trackers";
 import { ApiError } from "@/lib/api";

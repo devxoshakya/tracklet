@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "@tracklet /ui/lib/utils"
+import { cn } from "@tracklet/ui/lib/utils"
 import {
   DayPicker,
   getDefaultClassNames,
@@ -9,7 +9,7 @@ import {
   type Locale,
 } from "react-day-picker"
 
-import { Button, buttonVariants } from "@tracklet /ui/components/button"
+import { Button, buttonVariants } from "@tracklet/ui/components/button"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
 
 function Calendar({

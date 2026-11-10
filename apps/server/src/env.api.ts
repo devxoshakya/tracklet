@@ -1,5 +1,5 @@
-import type { createAuth as CreateAuthFn } from "@tracklet /auth";
-import type { Database } from "@tracklet /db";
+import type { createAuth as CreateAuthFn } from "@tracklet/auth";
+import type { Database } from "@tracklet/db";
 import type { MiddlewareHandler } from "hono";
 
 import { createAuth, getDb } from "./services";

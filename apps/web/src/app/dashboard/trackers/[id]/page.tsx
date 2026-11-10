@@ -6,9 +6,9 @@ import { useState } from "react";
 import { ArrowLeftIcon, ArrowUpRightIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@tracklet /ui/components/button";
-import { Input } from "@tracklet /ui/components/input";
-import { Skeleton } from "@tracklet /ui/components/skeleton";
+import { Button } from "@tracklet/ui/components/button";
+import { Input } from "@tracklet/ui/components/input";
+import { Skeleton } from "@tracklet/ui/components/skeleton";
 
 import {
   useAddPr,

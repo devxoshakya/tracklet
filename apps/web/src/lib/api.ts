@@ -1,4 +1,4 @@
-import type { ApiErrorDTO } from "@tracklet /db/schemas";
+import type { ApiErrorDTO } from "@tracklet/db/schemas";
 
 /**
  * Tiny typed fetch wrapper for the /api/v1 API.

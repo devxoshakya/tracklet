@@ -1,6 +1,6 @@
-import type { TrackerDTO } from "@tracklet /db/schemas";
-import { dashboardQuerySchema } from "@tracklet /db/schemas";
-import type { Tracker, TrackerPr } from "@tracklet /db/models";
+import type { TrackerDTO } from "@tracklet/db/schemas";
+import { dashboardQuerySchema } from "@tracklet/db/schemas";
+import type { Tracker, TrackerPr } from "@tracklet/db/models";
 import { Hono } from "hono";
 
 import type { ApiEnv } from "../env.api";

@@ -1,4 +1,4 @@
-import { cn } from "@tracklet /ui/lib/utils";
+import { cn } from "@tracklet/ui/lib/utils";
 
 /**
  * Tracklet brand mark — the rounded-triangle logo (from logo.svg).

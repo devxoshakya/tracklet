@@ -1,4 +1,4 @@
-import { cn } from "@tracklet /ui/lib/utils";
+import { cn } from "@tracklet/ui/lib/utils";
 import * as React from "react";
 
 function Card({

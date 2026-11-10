@@ -24,8 +24,8 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
-import type { AnalyticsSeriesDTO } from "@tracklet /db/schemas";
-import { Calendar } from "@tracklet /ui/components/calendar";
+import type { AnalyticsSeriesDTO } from "@tracklet/db/schemas";
+import { Calendar } from "@tracklet/ui/components/calendar";
 import {
   ChartContainer,
   ChartLegend,
@@ -33,13 +33,13 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@tracklet /ui/components/chart";
-import { Skeleton } from "@tracklet /ui/components/skeleton";
+} from "@tracklet/ui/components/chart";
+import { Skeleton } from "@tracklet/ui/components/skeleton";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@tracklet /ui/components/popover";
+} from "@tracklet/ui/components/popover";
 import type { DateRange } from "react-day-picker";
 
 import { useAnalytics, istAnchor, istMonthRange } from "@/hooks/trackers";

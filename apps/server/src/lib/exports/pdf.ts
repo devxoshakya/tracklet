@@ -1,4 +1,4 @@
-import type { AnalyticsDTO } from "@tracklet /db/schemas";
+import type { AnalyticsDTO } from "@tracklet/db/schemas";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type RGB } from "pdf-lib";
 
 /**

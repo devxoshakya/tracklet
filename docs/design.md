@@ -8,7 +8,7 @@
 2. **One accent, one action.** Blue (`#1a5cff` light / `#3b76ff` dark) is the only interactive accent. Everything else is neutral. Never decorate with color.
 3. **Theme-aware artwork.** Photography/illustration dims, desaturates, and fades into the theme's own canvas color — never pastes a light-only asset onto a dark page.
 4. **3D where it matters.** Primary actions get a keycap-style bottom edge; everything else stays flat. Depth is reserved for CTA, Google button, and cards.
-5. **shadcn as the component floor.** Buttons, dropdowns, toasts come from `@tracklet /ui` (shadcn / Base UI). Pages compose over them, never bypass them, except where a marketing moment needs custom layout.
+5. **shadcn as the component floor.** Buttons, dropdowns, toasts come from `@tracklet/ui` (shadcn / Base UI). Pages compose over them, never bypass them, except where a marketing moment needs custom layout.
 6. **Accessible by default.** Text contrast ≥ 4.5:1 in *both* themes, hit targets ≥ 40px, visible focus rings, no color-only meaning.
 
 ---
@@ -142,7 +142,7 @@ Side nav 232px + 56px top bar (as PRD 12.2). Page padding 24px desktop / 16px mo
 ### 6.1 Buttons
 - **Primary CTA (marketing):** `.btn-3d.btn-3d-primary`, h 48px, px 32, semibold 15px.
 - **Google sign-in:** `.btn-3d.btn-3d-light`, h 48px full-width, GoogleIcon 20px + label centered optically.
-- **App-internal buttons:** shadcn `Button` from `@tracklet /ui/components/button` (default/outline/ghost/destructive). To 3D-ify: add `btn-3d btn-3d-light` + size overrides (`h-11 rounded-lg px-5 text-[15px] font-semibold`).
+- **App-internal buttons:** shadcn `Button` from `@tracklet/ui/components/button` (default/outline/ghost/destructive). To 3D-ify: add `btn-3d btn-3d-light` + size overrides (`h-11 rounded-lg px-5 text-[15px] font-semibold`).
 - Loading replaces label with spinner; width locked.
 - Focus: `focus-visible` ring in `--ring`; never remove outline without replacement.
 
@@ -156,7 +156,7 @@ Rectangle 4px, h 22px, 12px medium, 6px leading dot. Light: soft fill + dark tex
 Per PRD; visual specs carry over from shadcn defaults: palette = 560px popover; drawer = right 440px radius-left 10px; board cards = `bg-card` radius 8px border, hover shadow, drag lifts with `--shadow-pop` equivalent + 1.2deg rotate.
 
 ### 6.5 Toasts
-Sonner (`@tracklet /ui/components/sonner`, `richColors`) bottom-right. Errors always include a retry path in copy.
+Sonner (`@tracklet/ui/components/sonner`, `richColors`) bottom-right. Errors always include a retry path in copy.
 
 ### 6.6 Theme toggle
 A **quiet ghost icon** (shadcn `Button` ghost variant, 40×40 hit target but no border, no shadow, no background): sun in light, moon in dark. One tap flips directly between the light and dark systems. Sits in the hero card header, right-aligned; 13% opacity-on-hover tint keeps it out of the artwork's way. Chrome-free by design — the frame should never compete with the hero.

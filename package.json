@@ -1,5 +1,5 @@
 {
-  "name": "tracklet ",
+  "name": "tracklet",
   "private": true,
   "workspaces": {
     "packages": [
@@ -32,10 +32,10 @@
     "test": "bun test",
     "dev:web": "turbo run dev:bare -F web --",
     "dev:server": "turbo run dev:bare -F hono --",
-    "db:generate": "turbo run db:generate -F @tracklet /db --",
-    "db:migrate": "turbo run db:migrate -F @tracklet /db --",
-    "deploy": "turbo run deploy -F @tracklet /infra --",
-    "destroy": "turbo run destroy -F @tracklet /infra --",
+    "db:generate": "turbo run db:generate -F @tracklet/db --",
+    "db:migrate": "turbo run db:migrate -F @tracklet/db --",
+    "deploy": "turbo run deploy -F @tracklet/infra --",
+    "destroy": "turbo run destroy -F @tracklet/infra --",
     "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./packages/db/",
     "postinstall": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./packages/db/"
   },
@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
-    "@tracklet /config": "workspace:*",
+    "@tracklet/config": "workspace:*",
     "@types/node": "catalog:",
     "turbo": "^2.11.7",
     "typescript": "catalog:",
