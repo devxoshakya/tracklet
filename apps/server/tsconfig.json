@@ -7,5 +7,6 @@
     },
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx"
-  }
+  },
+  "exclude": ["**/*.test.ts"]
 }
