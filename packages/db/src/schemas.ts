@@ -6,8 +6,11 @@
 import { z } from "zod";
 
 /** §8.2: exactly one user-selected category. */
-export const TRACKER_CATEGORIES = ["DEVOPS", "SUPPORT"] as const;
+export const TRACKER_CATEGORIES = ["DEVELOPMENT", "SUPPORT"] as const;
 export type TrackerCategory = (typeof TRACKER_CATEGORIES)[number];
+
+/** IST-only product (UTC+05:30, no DST) — analytics month buckets use IST. */
+export const IST_OFFSET_MINUTES = 330;
 
 /** FR-TRK-08 / FR-CLOSE-05. */
 export const TRACKER_STATUSES = ["OPEN", "COMPLETED"] as const;
@@ -95,6 +98,11 @@ export const dashboardQuerySchema = z.object({
   to: z.string().datetime({ offset: true }).optional(),
 });
 
+/** GET /analytics?from=&to=&granularity=week|month — same date rules as the dashboard. */
+export const analyticsQuerySchema = dashboardQuerySchema.extend({
+  granularity: z.enum(["week", "month"]).default("month"),
+});
+
 // ---------------------------------------------------------------------------
 // Responses
 // ---------------------------------------------------------------------------
@@ -132,11 +140,52 @@ export type TrackerListDTO = {
   nextCursor: string | null;
 };
 
+/**
+ * One bucket of the analytics series (date bases stated in FR-AN-04).
+ * Buckets are IST calendar months ("YYYY-MM") or IST weeks ("YYYY-MM-DD",
+ * week-start Monday) depending on the requested granularity.
+ */
+export type AnalyticsSeriesDTO = {
+  /** IST bucket key: "YYYY-MM" (month) or week-start "YYYY-MM-DD" (week). */
+  bucket: string;
+  /** Trackers started this month (startedAt basis). */
+  started: number;
+  /** Trackers completed this month (completedAt basis). */
+  completed: number;
+  /** Of the started ones (startedAt basis). */
+  development: number;
+  support: number;
+  /** Unique PR references added this month (PR addedAt basis, not "merged"). */
+  uniquePrs: number;
+  /** Avg cycle time of trackers completed this month. */
+  avgCycleTimeMinutes: number | null;
+};
+
+/** GET /analytics — everything the Analytics page needs in one response. */
+export type AnalyticsDTO = {
+  range: { from: string; to: string };
+  /** FR-AN-06: started in range (startedAt basis). */
+  started: number;
+  /** FR-AN-05: completed in range (completedAt basis). */
+  completed: number;
+  /** FR-AN-07: category split of started-in-range, with percentages. */
+  development: number;
+  support: number;
+  /** FR-AN-08: unique PR references added in range (addedAt basis). */
+  uniquePrs: number;
+  /** FR-AN-09: avg cycle time of completed-in-range. */
+  avgCycleTimeMinutes: number | null;
+  /** FR-AN-10: current open-tracker snapshot (now − startedAt). */
+  openAgeDays: { count: number; average: number | null; oldest: number | null };
+  /** IST bucket series across the range (capped at the last 12 buckets). */
+  series: AnalyticsSeriesDTO[];
+};
+
 export type DashboardTotalsDTO = {
   total: number;
   completed: number;
   open: number;
-  devops: number;
+  development: number;
   support: number;
   uniquePrs: number;
   avgCycleTimeMinutes: number | null;

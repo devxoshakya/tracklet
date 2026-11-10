@@ -1,24 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { toast } from "sonner";
-
-import { Button } from "@tracklet /ui/components/button";
+import { usePathname } from "next/navigation";
 
 import BrandMark from "./brand-mark";
 import { ModeToggle } from "./mode-toggle";
-import { authClient } from "@/lib/auth-client";
+import UserMenu from "./user-menu";
 
-/** Signed-in app header: brand, primary nav, theme, sign-out. */
+const links = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard/analytics", label: "Analytics" },
+] as const;
+
+/** Signed-in app header: brand, primary nav, theme, account menu. */
 export default function AppHeader() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const links = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/dashboard/trackers", label: "Trackers" },
-  ] as const;
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur">
@@ -56,23 +52,7 @@ export default function AppHeader() {
         </div>
         <div className="flex items-center gap-2">
           <ModeToggle />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 rounded-lg text-sm text-muted-foreground hover:text-foreground"
-            onClick={() =>
-              authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                    toast.success("Signed out");
-                    router.replace("/");
-                  },
-                },
-              })
-            }
-          >
-            Sign out
-          </Button>
+          <UserMenu />
         </div>
       </div>
     </header>

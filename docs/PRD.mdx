@@ -20,7 +20,7 @@ Ticket & PR Tracker is a lightweight web application for recording work represen
 
 Users create a tracker by submitting a Jira ticket URL and manually choosing its category:
 
-- **DevOps**
+- **Development**
 - **Support**
 
 The application does not sign in to Jira, fetch Jira ticket contents, or attempt to read private Jira pages. The submitted URL is the source of truth. The application extracts the ticket identifier from the URL and uses that identifier as the tracker title. The full URL is retained and shown as the ticket reference.
@@ -37,7 +37,7 @@ The application provides a dashboard, tracker search and management, calendar/li
 
 1. Make it quick to record a Jira ticket without manually copying ticket details.
 2. Keep the Jira ticket URL as the authoritative reference.
-3. Require an explicit user-selected category of DevOps or Support.
+3. Require an explicit user-selected category of Development or Support.
 4. Associate one or more GitHub PR URLs with a tracker.
 5. Provide a reliable record of when a tracker was started and completed.
 6. Show useful monthly work statistics and trends.
@@ -49,7 +49,7 @@ The application provides a dashboard, tracker search and management, calendar/li
 The product is successful when a user can:
 
 - Sign in with Google.
-- Create a tracker by submitting a valid Jira URL and selecting DevOps or Support.
+- Create a tracker by submitting a valid Jira URL and selecting Development or Support.
 - See the extracted ticket ID as the tracker title.
 - Find trackers by ticket ID or CR/PR reference.
 - Close a tracker by selecting it and submitting its GitHub PR URL(s).
@@ -131,7 +131,7 @@ The existing technology choices remain unchanged, except that all AI functionali
 | Tracker | An application record representing one Jira ticket/work item |
 | Ticket URL | The user-submitted Jira URL; the source of truth for the ticket reference |
 | Ticket ID | The issue identifier parsed from the URL, e.g. `DEV-123` |
-| Category | User-selected work classification: DevOps or Support |
+| Category | User-selected work classification: Development or Support |
 | PR | A GitHub pull request URL submitted by the user |
 | CR reference | The pull-request reference associated with a tracker; in the MVP this is represented by the submitted PR URL and any safely parsed repository/PR number |
 | Start date | Date/time when the tracker is created, unless the user explicitly chooses another allowed start date |
@@ -148,7 +148,7 @@ The application must not attempt to read the Jira page or retrieve ticket metada
 
 The user supplies:
 - Jira ticket URL.
-- Category: DevOps or Support.
+- Category: Development or Support.
 
 The application derives:
 - Ticket ID from the URL, when the URL matches a supported Jira issue URL pattern.
@@ -170,7 +170,7 @@ Submitted URL:
 Displayed tracker:
 - Title: `DEV-123`
 - Ticket link: `https://company.atlassian.net/browse/DEV-123`
-- Category: `DevOps`
+- Category: `Development`
 
 If the ticket ID cannot be parsed confidently, the application must ask the user to correct the URL or enter the ticket ID manually. It must not create a misleading ID.
 
@@ -178,7 +178,7 @@ If the ticket ID cannot be parsed confidently, the application must ask the user
 
 The category is mandatory and selected by the user. The allowed values are:
 
-- `DEVOPS`
+- `DEVELOPMENT`
 - `SUPPORT`
 
 The category must be visible in create forms, tracker lists, tracker details, filters, analytics, and exports.
@@ -210,7 +210,7 @@ The submitted PR URL is the source of truth for the PR reference.
 2. User selects **Create Tracker**.
 3. Application opens a dialog or dedicated form.
 4. User pastes the Jira ticket URL.
-5. User selects `DevOps` or `Support`.
+5. User selects `Development` or `Support`.
 6. Application validates the URL and extracts the ticket ID.
 7. Application shows a review/confirmation state with the parsed ticket ID and category.
 8. User submits the form.
@@ -235,7 +235,7 @@ Start date behaviour:
 5. Once authenticated, extension reads the active tab URL only after the user opens the extension UI.
 6. Extension pre-fills the Jira URL field with the current tab URL.
 7. User confirms or edits the URL.
-8. User selects DevOps or Support.
+8. User selects Development or Support.
 9. User clicks **Create Tracker**.
 10. Extension sends the URL and category to the application backend using the application's authenticated flow.
 11. Backend validates and creates the tracker.
@@ -305,7 +305,7 @@ The application must parse the issue key from supported URL patterns, including 
 If parsing fails or is ambiguous, the user must be able to correct the URL or provide the ticket ID manually. Any manually entered ID must be stored distinctly from an automatically parsed ID if this distinction is retained in the data model.
 
 **FR-TRK-06 — Category selection**
-The user must select exactly one category: DevOps or Support.
+The user must select exactly one category: Development or Support.
 
 **FR-TRK-07 — Start date**
 The tracker must receive a start timestamp at creation. If editing is supported, the interface must make the selected date clear.
@@ -335,8 +335,8 @@ A tracker detail view must show:
 - Completion date, if completed.
 - Cycle time, if completed.
 
-**FR-TRK-13 — Edit category**
-Users may change a tracker category, subject to the product's edit rules. Changes must be reflected in analytics and exports.
+**FR-TRK-13 — Category is fixed after creation**
+The category is selected once, at tracker creation, and is then displayed as a label. It cannot be switched afterwards.
 
 **FR-TRK-14 — Edit start date**
 If enabled, users may correct the start date. Changes must recalculate cycle time and be reflected in reports.
@@ -405,7 +405,7 @@ Users must be able to search by ticket ID.
 Users must be able to search by PR number, repository reference, or full PR URL where available.
 
 **FR-SEARCH-03 — Category filter**
-Users must be able to filter DevOps and Support trackers.
+Users must be able to filter Development and Support trackers.
 
 **FR-SEARCH-04 — Status filter**
 Users must be able to filter Open and Completed trackers.
@@ -423,7 +423,7 @@ The dashboard must show:
 - Total trackers in the selected period.
 - Completed trackers.
 - Open trackers.
-- DevOps trackers.
+- Development trackers.
 - Support trackers.
 - Total unique PR references.
 
@@ -448,7 +448,7 @@ Provide a table/list view with ticket ID, category, start date, completion date,
 Provide a calendar view showing tracker start and completion activity.
 
 **FR-VIEW-03 — Category distinction**
-DevOps and Support must be visually distinguishable. The exact colors and visual tokens are defined in `design.md`.
+Development and Support must be visually distinguishable. The exact colors and visual tokens are defined in `design.md`.
 
 **FR-VIEW-04 — Calendar interaction**
 Selecting a calendar item must open its tracker detail view.
@@ -483,7 +483,7 @@ Show the number of trackers completed in the selected period.
 Show the number of trackers created or started in the selected period.
 
 **FR-AN-07 — Category distribution**
-Show DevOps and Support counts and percentages.
+Show Development and Support counts and percentages.
 
 **FR-AN-08 — PR count**
 Show the number of unique PR references added in the selected period.
@@ -504,8 +504,8 @@ When no data exists for a selected period, display a helpful empty state rather 
    - Trackers completed per month.
    - These must be separate series.
 
-2. **DevOps vs Support — doughnut chart**
-   - Count of DevOps trackers.
+2. **Development vs Support — doughnut chart**
+   - Count of Development trackers.
    - Count of Support trackers.
    - Optional percentages.
 
@@ -519,7 +519,7 @@ When no data exists for a selected period, display a helpful empty state rather 
    - Average cycle time for trackers completed in each month.
 
 6. **Work distribution — stacked bar chart**
-   - DevOps and Support tracker counts grouped by month, using a clearly stated date basis.
+   - Development and Support tracker counts grouped by month, using a clearly stated date basis.
 
 The UI must label chart axes, units, and date periods. Do not imply that PR count equals merged PR count.
 
@@ -541,7 +541,7 @@ The workbook must contain the following sheets:
 - Total trackers started.
 - Total trackers completed.
 - Open trackers as of export time.
-- DevOps count.
+- Development count.
 - Support count.
 - PR references added in the period.
 - Average cycle time for trackers completed in the period.
@@ -569,7 +569,7 @@ The workbook must contain the following sheets:
 - Month.
 - Trackers started.
 - Trackers completed.
-- DevOps count.
+- Development count.
 - Support count.
 - PR references added.
 - Average cycle time.
@@ -599,7 +599,7 @@ The PDF should include:
 3. Generation date.
 4. Executive summary metrics.
 5. Monthly tracker activity graph.
-6. DevOps vs Support distribution.
+6. Development vs Support distribution.
 7. Monthly PR activity graph.
 8. Completion trend.
 9. Average cycle time.
@@ -632,7 +632,7 @@ The extension must support a secure authenticated connection to the application.
 When the user opens the extension popup, it may read the active tab URL to prefill the Jira URL input. It must not read the page DOM or page contents.
 
 **FR-EXT-06 — Category**
-The extension must let the user select DevOps or Support.
+The extension must let the user select Development or Support.
 
 **FR-EXT-07 — Create tracker**
 The extension must submit the Jira URL and category to the application backend.
@@ -741,7 +741,7 @@ Visual styling must follow the separately maintained `design.md`. The pages and 
 
 Fields:
 - Jira ticket URL.
-- Category selector: DevOps / Support.
+- Category selector: Development / Support.
 - Start date if editable.
 
 Show parsed ticket ID before final submission. Do not show Jira title or description.
@@ -798,7 +798,7 @@ Better Auth owns the authentication-related records. Application records referen
 | `user_id` | TEXT | Yes | Owner |
 | `ticket_id` | TEXT | Yes | Parsed or user-corrected issue key |
 | `jira_url` | TEXT | Yes | Original/normalized Jira issue URL |
-| `category` | TEXT/ENUM | Yes | `DEVOPS` or `SUPPORT` |
+| `category` | TEXT/ENUM | Yes | `DEVELOPMENT` or `SUPPORT` |
 | `start_date` | INTEGER/TIMESTAMP | Yes | Work start timestamp |
 | `start_date_source` | TEXT | Yes | `CREATED` or `MANUAL`, if tracking provenance |
 | `status` | TEXT/ENUM | Yes | `OPEN` or `COMPLETED` |
@@ -863,13 +863,9 @@ Suggested endpoints:
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `GET` | `/api/analytics/overview` | Summary cards |
-| `GET` | `/api/analytics/activity` | Started/completed time series |
-| `GET` | `/api/analytics/categories` | DevOps/Support distribution |
-| `GET` | `/api/analytics/pr-activity` | PR reference activity |
-| `GET` | `/api/analytics/cycle-time` | Cycle-time series |
+| `GET` | `/api/analytics` | Full analytics payload in one response: summary cards, category distribution, open age, and the monthly series (started/completed, categories, PR activity, cycle time) |
 
-All analytics endpoints should accept consistent `from` and `to` date parameters, plus any required timezone context. Validate date ranges and avoid accepting unbounded queries without limits.
+All analytics endpoints accept consistent `from` and `to` date parameters plus timezone context (IST, UTC+05:30). Validate date ranges and avoid accepting unbounded queries without limits.
 
 ### 14.3 Exports
 
@@ -1003,7 +999,7 @@ Therefore:
 - “Merged PRs” must not be shown because merge state is not checked.
 - “Jira ticket title” must not be shown because Jira content is not retrieved.
 - “Ticket ID” is the identifier parsed from the Jira URL.
-- “DevOps” and “Support” are user-selected categories, not AI classifications.
+- “Development” and “Support” are user-selected categories, not AI classifications.
 
 These definitions must be used consistently in the dashboard, Excel workbook, PDF report, and any future presentation.
 
@@ -1048,7 +1044,7 @@ These definitions must be used consistently in the dashboard, Excel workbook, PD
 
 - Implement date-range presets and custom ranges.
 - Implement started/completed counts.
-- Implement DevOps/Support distribution.
+- Implement Development/Support distribution.
 - Implement PR reference activity.
 - Implement completion trend.
 - Implement cycle-time analysis.
@@ -1095,7 +1091,7 @@ These definitions must be used consistently in the dashboard, Excel workbook, PD
 - [ ] Application parses the ticket ID from supported URL patterns.
 - [ ] Ticket ID is displayed as the tracker title.
 - [ ] Original Jira URL is retained and clickable.
-- [ ] User must choose DevOps or Support.
+- [ ] User must choose Development or Support.
 - [ ] New tracker receives a start date and OPEN status.
 - [ ] No Jira page contents are fetched.
 - [ ] No Jira title or description is requested or displayed.
@@ -1125,7 +1121,7 @@ These definitions must be used consistently in the dashboard, Excel workbook, PD
 - [ ] Custom date range works.
 - [ ] Started and completed metrics use their correct timestamps.
 - [ ] PR activity uses PR-reference creation timestamps.
-- [ ] DevOps/Support distribution is accurate.
+- [ ] Development/Support distribution is accurate.
 - [ ] Average cycle time excludes open trackers.
 - [ ] Empty states are handled correctly.
 
@@ -1141,7 +1137,7 @@ These definitions must be used consistently in the dashboard, Excel workbook, PD
 - [ ] Extension uses Manifest V3.
 - [ ] Extension can authenticate with the application.
 - [ ] Extension can prefill the current Jira URL.
-- [ ] User can select DevOps or Support.
+- [ ] User can select Development or Support.
 - [ ] Extension can create a tracker through the application backend.
 - [ ] Extension displays success and error states.
 - [ ] Extension does not read Jira/GitHub cookies or scrape page content.
@@ -1165,12 +1161,12 @@ These decisions should be confirmed before implementation is finalized:
 
 Ticket & PR Tracker is a simple, user-driven system for recording Jira work and associated GitHub pull-request references.
 
-The product does not integrate with Jira or GitHub APIs in the MVP. It does not use AI. The user supplies the Jira URL, selects DevOps or Support, and later supplies the relevant PR URL(s).
+The product does not integrate with Jira or GitHub APIs in the MVP. It does not use AI. The user supplies the Jira URL, selects Development or Support, and later supplies the relevant PR URL(s).
 
 The Jira URL remains the source of truth. The ticket ID parsed from that URL is the tracker title. The category is explicitly selected by the user. PR URLs are stored and counted without inspecting PR contents or verifying merge status.
 
 The core workflow is:
 
-**Sign in → Create Tracker → Paste Jira URL → Select DevOps or Support → Track Work → Select Tracker → Add PR URL(s) → Confirm Completion → View Monthly Analytics → Export Excel/PDF.**
+**Sign in → Create Tracker → Paste Jira URL → Select Development or Support → Track Work → Select Tracker → Add PR URL(s) → Confirm Completion → View Monthly Analytics → Export Excel/PDF.**
 
 The Chrome extension is a lightweight companion that authenticates with this application and makes the Create Tracker workflow available from a Jira browser tab. All core business logic, persistence, analytics, and reporting remain in the main application.

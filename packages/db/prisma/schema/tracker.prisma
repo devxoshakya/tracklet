@@ -15,7 +15,7 @@ model Tracker {
   jiraUrl           String
   jiraUrlNormalized String?
 
-  // Exactly one of DEVOPS | SUPPORT, user-selected (§8.2, FR-TRK-06).
+  // Exactly one of DEVELOPMENT | SUPPORT, user-selected (§8.2, FR-TRK-06).
   category          String
   // OPEN | COMPLETED. New trackers start OPEN (FR-TRK-08).
   status            String    @default("OPEN")

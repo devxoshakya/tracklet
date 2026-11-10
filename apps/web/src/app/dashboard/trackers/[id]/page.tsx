@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { ArrowLeftIcon, ArrowUpRightIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@tracklet /ui/components/button";
@@ -20,7 +21,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { formatDate, formatDateTime, formatCycleTime } from "@/lib/format";
 import { parseGitHubPrUrl } from "@/lib/pr-url";
-import { CategoryChip, StatusChip } from "../page";
+import { CategoryChip, StatusChip } from "@/components/tracker-chips";
 
 /**
  * Tracker detail (PRD FR-TRK-12): ticket reference, category, dates, PR
@@ -61,10 +62,10 @@ export default function TrackerDetailPage() {
           {error instanceof Error ? error.message : "It may have been deleted."}
         </p>
         <Link
-          href="/dashboard/trackers"
+          href="/dashboard"
           className="mt-4 inline-flex h-10 items-center rounded-lg border border-border bg-card px-4 text-sm font-semibold"
         >
-          Back to trackers
+          Back to dashboard
         </Link>
       </div>
     );
@@ -101,10 +102,11 @@ export default function TrackerDetailPage() {
     <div className="mx-auto max-w-2xl space-y-5">
       <div className="flex items-center gap-3">
         <Link
-          href="/dashboard/trackers"
-          className="text-sm text-muted-foreground hover:text-foreground"
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          ← Trackers
+          <ArrowLeftIcon className="size-4" />
+          Dashboard
         </Link>
       </div>
 
@@ -126,9 +128,10 @@ export default function TrackerDetailPage() {
           href={tracker.jiraUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-10 items-center rounded-lg border border-border bg-card px-4 text-sm font-semibold shadow-[0_2px_0_0_rgba(17,19,24,0.14)] transition-[transform,box-shadow] hover:-translate-y-px active:translate-y-0 active:shadow-none"
+          className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-4 text-sm font-semibold shadow-[0_2px_0_0_rgba(17,19,24,0.14)] transition-[transform,box-shadow] hover:-translate-y-px active:translate-y-0 active:shadow-none"
         >
-          Open in Jira ↗
+          Open in Jira
+          <ArrowUpRightIcon className="size-4" />
         </a>
       </div>
 
@@ -157,32 +160,7 @@ export default function TrackerDetailPage() {
             <Value>{formatCycleTime(tracker.cycleTimeMinutes)}</Value>
           </Field>
           <Field label="Category">
-            {isOpen ? (
-              <span className="flex gap-1.5">
-                {(["DEVOPS", "SUPPORT"] as const).map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    disabled={update.isPending}
-                    onClick={() =>
-                      update
-                        .mutateAsync({ id: tracker.id, category: cat })
-                        .then(() => toast.success("Category updated"))
-                        .catch((e) => toast.error(e.message))
-                    }
-                    className={`cursor-pointer rounded-[4px] px-2 py-1 text-xs font-medium transition-opacity ${
-                      tracker.category === cat
-                        ? "bg-accent text-[color:var(--accent-foreground)]"
-                        : "bg-muted text-muted-foreground hover:opacity-80"
-                    }`}
-                  >
-                    {cat === "DEVOPS" ? "DevOps" : "Support"}
-                  </button>
-                ))}
-              </span>
-            ) : (
-              <Value>{tracker.category === "DEVOPS" ? "DevOps" : "Support"}</Value>
-            )}
+            <CategoryChip category={tracker.category} />
           </Field>
           <Field label="Status">
             <Value>{isOpen ? "Open" : "Completed"}</Value>
@@ -317,7 +295,7 @@ export default function TrackerDetailPage() {
                     .mutateAsync(tracker.id)
                     .then(() => {
                       toast.success("Tracker deleted");
-                      router.push("/dashboard/trackers");
+                      router.push("/dashboard");
                     })
                     .catch((e) => toast.error(e.message))
                 }

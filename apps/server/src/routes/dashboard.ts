@@ -14,7 +14,7 @@ export const dashboard = new Hono<ApiEnv>();
  * round trip so React Query caches the whole dashboard under a single key.
  *
  * Date basis (stated explicitly per FR-AN-04):
- * - total / open / devops / support → startedAt in range
+ * - total / open / development / support → startedAt in range
  * - completed → completedAt in range
  * - uniquePrs → PR addedAt in range
  * - avgCycleTime → trackers completed in range
@@ -44,7 +44,7 @@ dashboard.get("/", async (c) => {
     const [
       total,
       open,
-      devops,
+      development,
       support,
       completed,
       prs,
@@ -53,7 +53,7 @@ dashboard.get("/", async (c) => {
     ] = await Promise.all([
       db.tracker.count({ where: startedInRange }),
       db.tracker.count({ where: { ...startedInRange, status: "OPEN" } }),
-      db.tracker.count({ where: { ...startedInRange, category: "DEVOPS" } }),
+      db.tracker.count({ where: { ...startedInRange, category: "DEVELOPMENT" } }),
       db.tracker.count({ where: { ...startedInRange, category: "SUPPORT" } }),
       db.tracker.findMany({
         where: completedInRange,
@@ -102,7 +102,7 @@ dashboard.get("/", async (c) => {
         total,
         completed: completed.length,
         open,
-        devops,
+        development,
         support,
         // FR-PR-05: unique stored references only.
         uniquePrs: new Set(prs.map((p) => p.urlNormalized)).size,

@@ -8,6 +8,7 @@ import { withServices } from "./env.api";
 import { toErrorResponse } from "./lib/http";
 import { requireAuth } from "./middleware/auth";
 import { createAuth } from "./services";
+import { analytics } from "./routes/analytics";
 import { dashboard } from "./routes/dashboard";
 import { trackers } from "./routes/trackers";
 
@@ -37,6 +38,7 @@ api.use("*", withServices);
 api.use("*", requireAuth);
 api.route("/trackers", trackers);
 api.route("/dashboard", dashboard);
+api.route("/analytics", analytics);
 app.route("/api/v1", api);
 
 app.get("/", (c) => {

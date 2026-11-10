@@ -10,6 +10,7 @@ import {
 import type { InfiniteData, UseInfiniteQueryResult } from "@tanstack/react-query";
 
 import type {
+  AnalyticsDTO,
   DashboardDTO,
   TrackerDTO,
   TrackerListDTO,
@@ -30,10 +31,15 @@ import { api } from "@/lib/api";
 
 export type TrackerFilters = {
   search?: string;
-  category?: "DEVOPS" | "SUPPORT";
+  category?: "DEVELOPMENT" | "SUPPORT";
   status?: "OPEN" | "COMPLETED";
   sort?: "startedAt" | "completedAt" | "createdAt";
   order?: "asc" | "desc";
+  startedFrom?: string;
+  startedTo?: string;
+  completedFrom?: string;
+  completedTo?: string;
+  limit?: number;
 };
 
 export const trackerKeys = {
@@ -59,6 +65,11 @@ export function trackersListQuery(filters: TrackerFilters) {
       if (filters.status) params.set("status", filters.status);
       if (filters.sort) params.set("sort", filters.sort);
       if (filters.order) params.set("order", filters.order);
+      if (filters.startedFrom) params.set("startedFrom", filters.startedFrom);
+      if (filters.startedTo) params.set("startedTo", filters.startedTo);
+      if (filters.completedFrom) params.set("completedFrom", filters.completedFrom);
+      if (filters.completedTo) params.set("completedTo", filters.completedTo);
+      if (filters.limit) params.set("limit", String(filters.limit));
       if (pageParam) params.set("cursor", String(pageParam));
       const qs = params.toString();
       return api<TrackerListDTO>(`/trackers${qs ? `?${qs}` : ""}`);
@@ -77,13 +88,32 @@ export function trackerDetailQuery(id: string) {
   });
 }
 
+/** IST-only product (UTC+05:30, no DST) — all calendar math uses IST. */
+export const IST_MS = 330 * 60_000;
+
+/**
+ * IST calendar anchor: a Date whose UTC parts are the IST calendar parts
+ * (e.g. 2026-11-01T00:00Z represents 1 Nov 2026 IST). Shifted-space math
+ * keeps day cells, keys, and labels off-by-one free.
+ */
+export function istAnchor(date = new Date()): Date {
+  const shifted = new Date(date.getTime() + IST_MS);
+  return new Date(`${shifted.toISOString().slice(0, 7)}-01T00:00:00Z`);
+}
+
+/** Month bounds as UTC instants for an IST calendar anchor (FR-DASH-02). */
+export function istMonthRange(anchor: Date): { from: string; to: string } {
+  return {
+    from: new Date(anchor.getTime() - IST_MS).toISOString(),
+    to: new Date(
+      Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() + 1, 1) - IST_MS - 1,
+    ).toISOString(),
+  };
+}
+
 /** Current calendar month by default (FR-DASH-02). */
-export function monthRange(date = new Date()): { from: string; to: string } {
-  const from = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-  const to = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 23, 59, 59, 999),
-  );
-  return { from: from.toISOString(), to: to.toISOString() };
+export function monthRange(date = new Date()) {
+  return istMonthRange(istAnchor(date));
 }
 
 export function dashboardQuery(range = monthRange()) {
@@ -94,6 +124,27 @@ export function dashboardQuery(range = monthRange()) {
         `/dashboard?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
       ),
   });
+}
+
+/** GET /analytics — full page payload under one cache key (FR-AN-01). */
+export function analyticsQuery(
+  range: { from: string; to: string },
+  granularity: "week" | "month" = "month",
+) {
+  return queryOptions({
+    queryKey: [...trackerKeys.all, "analytics", range.from, range.to, granularity] as const,
+    queryFn: () =>
+      api<AnalyticsDTO>(
+        `/analytics?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}&granularity=${granularity}`,
+      ),
+  });
+}
+
+export function useAnalytics(
+  range: { from: string; to: string },
+  granularity: "week" | "month" = "month",
+) {
+  return useQuery(analyticsQuery(range, granularity));
 }
 
 export function useTrackersList(filters: TrackerFilters) {
@@ -153,7 +204,7 @@ export function useCreateTracker() {  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: {
       jiraUrl: string;
-      category: "DEVOPS" | "SUPPORT";
+      category: "DEVELOPMENT" | "SUPPORT";
       ticketId?: string;
       allowDuplicate?: boolean;
     }) => api<TrackerDTO>("/trackers", { json: input }),
@@ -172,7 +223,7 @@ export function useUpdateTracker() {
   return useMutation({
     mutationFn: (input: {
       id: string;
-      category?: "DEVOPS" | "SUPPORT";
+      category?: "DEVELOPMENT" | "SUPPORT";
       startedAt?: string;
     }) =>
       api<TrackerDTO>(`/trackers/${input.id}`, {
