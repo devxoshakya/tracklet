@@ -19,6 +19,11 @@
   margin: 0;
 }
 
+/* display:grid on sections beats the UA [hidden] rule — restore hiding */
+[hidden] {
+  display: none !important;
+}
+
 body {
   width: 336px;
   font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
