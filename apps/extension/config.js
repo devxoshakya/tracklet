@@ -6,6 +6,6 @@
 //
 // FR-EXT-02/10: these are the ONLY origins the extension talks to.
 const CONFIG = {
-  serverOrigin: "http://localhost:3001",
-  webOrigin: "http://localhost:3000",
+  serverOrigin: "http://localhost:3000",
+  webOrigin: "http://localhost:3001",
 };
