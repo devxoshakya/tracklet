@@ -22,7 +22,7 @@ app.onError((error) => toErrorResponse(error));
 app.use(
   "/*",
   cors({
-    origin: ENV.CORS_ORIGIN,
+    origin: ENV.CORS_ORIGIN.split(",").map((o) => o.trim()),
     // PATCH/DELETE are needed for tracker edits and PR reference removal.
     allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
