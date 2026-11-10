@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tracklet</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="head">
+      <span class="logo" aria-hidden="true">▦</span>
+      <span class="title">Tracklet</span>
+      <a id="open-app" class="open-app" href="#" target="_blank" hidden>Open app</a>
+    </header>
+
+    <main id="view">
+      <!-- Filled by popup.js: signin | form | confirm | done | error -->
+      <p id="status" class="status" role="status"></p>
+
+      <section id="form" hidden>
+        <label class="label" for="jira-url">Jira ticket URL</label>
+        <input
+          id="jira-url"
+          type="url"
+          placeholder="https://team.atlassian.net/browse/DEV-101"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p id="ticket-preview" class="preview" hidden></p>
+
+        <span class="label">Category</span>
+        <div class="pills" role="radiogroup" aria-label="Category">
+          <button type="button" class="pill selected" data-cat="DEVELOPMENT" role="radio" aria-checked="true">
+            Development
+          </button>
+          <button type="button" class="pill" data-cat="SUPPORT" role="radio" aria-checked="false">
+            Support
+          </button>
+        </div>
+
+        <button id="track" class="primary" type="button">Track this ticket</button>
+      </section>
+
+      <section id="confirm" hidden>
+        <p id="confirm-text" class="confirm-text"></p>
+        <div class="row">
+          <button id="force" class="primary" type="button">Create anyway</button>
+          <a id="open-existing" class="secondary" href="#" target="_blank">Open existing</a>
+        </div>
+      </section>
+
+      <section id="done" hidden>
+        <p class="confirm-text ok">✓ Tracker created.</p>
+        <a id="open-tracker" class="primary link" href="#" target="_blank">Open tracker</a>
+      </section>
+
+      <section id="signin" hidden>
+        <p class="confirm-text">Sign in to Tracklet first — then try again.</p>
+        <a id="signin-link" class="primary link" href="#" target="_blank">Sign in</a>
+      </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

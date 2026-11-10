@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Tracklet",
+  "version": "1.0.0",
+  "description": "Start tracking the Jira ticket you're viewing — one click into Tracklet.",
+  "minimum_chrome_version": "88",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Track this ticket"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["activeTab"],
+  "host_permissions": ["http://localhost:8787/*"]
+}

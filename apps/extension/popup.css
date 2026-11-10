@@ -1,0 +1,183 @@
+/* Tracklet popup — matches the web app's design language (navy primary,
+   rounded cards, muted grays). 320px popup. */
+
+:root {
+  --primary: #1a58db;
+  --primary-dark: #1449b8;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --card: #f6f8fa;
+  --ok: #15803d;
+  --err: #b91c1c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  width: 320px;
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: #fff;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.logo {
+  color: var(--primary);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.title {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  flex: 1;
+}
+
+.open-app {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+#view {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.status.err {
+  color: var(--err);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.label {
+  display: block;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--ink);
+  margin-bottom: 5px;
+}
+
+#jira-url {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font: inherit;
+  background: var(--card);
+}
+
+#jira-url:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+  background: #fff;
+}
+
+.preview {
+  margin-top: 6px;
+  color: var(--ok);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.pills {
+  display: flex;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 3px;
+  background: var(--card);
+}
+
+.pill {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.pill.selected {
+  background: #e8eefc;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.primary {
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  padding: 9px 0;
+  cursor: pointer;
+  text-align: center;
+}
+
+.primary:hover {
+  background: var(--primary-dark);
+}
+
+.primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.primary.link,
+.secondary {
+  display: block;
+  text-decoration: none;
+}
+
+.secondary {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  padding: 9px 0;
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.confirm-text {
+  color: var(--ink);
+}
+
+.confirm-text.ok {
+  color: var(--ok);
+  font-weight: 700;
+}
