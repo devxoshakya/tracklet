@@ -19,7 +19,10 @@ export function createAuth(
     database: prismaAdapter(database, {
       provider: "sqlite",
     }),
-    trustedOrigins: [env.CORS_ORIGIN, ...desktopOrigins],
+    trustedOrigins: [
+      ...env.CORS_ORIGIN.split(",").map((o) => o.trim()),
+      ...desktopOrigins,
+    ],
     // Google-only authentication (PRD FR-AUTH-01); no credentials, no GitHub.
     socialProviders: {
       google: {
