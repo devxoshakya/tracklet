@@ -30,6 +30,10 @@ Chrome **Manifest V3** (FR-EXT-01), no build step, no dependencies.
   duplicate confirm, success, errors — FR-EXT-06..08)
 - `lib/parse.js` — verbatim copy of the app's Jira URL parser
 - `tools/make-icons.ts` — regenerates the PNG icons (`bun tools/make-icons.ts`)
+- `tools/pack.ts` — self-check, then zip the loadable files into
+  `apps/web/public/extension.zip` — the download behind the web app's
+  avatar-menu "Install Chrome extension" button. Re-run after changes (and
+  point `config.js` at the production origins before packing for a deploy)
 - `tools/check-extension.ts` — self-check: manifest references + parser parity
   with `packages/db/src/urls.ts` (`bun tools/check-extension.ts`)
 

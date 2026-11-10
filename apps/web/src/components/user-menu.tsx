@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
+import { DownloadIcon } from "lucide-react";
 
 /**
  * Circle avatar (Google profile image when present, neutral initial
@@ -59,6 +60,21 @@ export default function UserMenu() {
             </span>
           </span>
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          render={
+            <a
+              href="/extension.zip"
+              download="tracklet-chrome-extension.zip"
+              // Chrome loads unpacked extensions from an unzipped folder —
+              // steps are in the zip's README.
+              title="Download, unzip, then load unpacked via chrome://extensions"
+            />
+          }
+        >
+          <DownloadIcon aria-hidden="true" />
+          Install Chrome extension
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
