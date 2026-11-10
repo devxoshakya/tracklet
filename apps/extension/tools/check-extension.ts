@@ -28,10 +28,16 @@ assert(
   JSON.stringify(manifest.permissions) === JSON.stringify(["activeTab"]),
   `minimal permissions (FR-EXT-10), got ${JSON.stringify(manifest.permissions)}`,
 );
+// The manifest's host permission must cover config.js's serverOrigin — a
+// mismatched port silently breaks every popup request.
+const serverOrigin = /serverOrigin:\s*"([^"]+)"/.exec(
+  readFileSync(dir + "config.js", "utf8"),
+)?.[1];
+assert(serverOrigin, "config.js defines serverOrigin");
 assert(
   manifest.host_permissions.length === 1 &&
-    manifest.host_permissions[0].includes("localhost:8787"),
-  "host_permissions limited to the app API (FR-EXT-02/10)",
+    manifest.host_permissions[0].startsWith(serverOrigin),
+  `host_permissions must match config.js serverOrigin (${serverOrigin}), got ${JSON.stringify(manifest.host_permissions)}`,
 );
 for (const icon of Object.values(manifest.icons)) {
   assert(has(icon), `icon exists: ${icon}`);
