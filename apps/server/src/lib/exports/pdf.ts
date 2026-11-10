@@ -1,11 +1,12 @@
 import type { AnalyticsDTO } from "@tracklet /db/schemas";
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type RGB } from "pdf-lib";
 
 /**
- * PDF report (FR-PDF-01..05): executive summary, activity/distribution/PR/
- * completion/cycle-time charts, tracker appendix. Print-friendly A4, page
- * numbers, and honest labels — PR counts are "references submitted", the MVP
- * never verifies GitHub merge state (FR-PDF-05).
+ * PDF report (FR-PDF-01..05): branded header, executive summary cards, chart
+ * frames with gridlines/ticks/value labels, dev-vs-support split, trend areas,
+ * and a zebra-striped tracker appendix. Print-friendly, page numbers, honest
+ * labels — PR counts are "references submitted", the MVP never verifies GitHub
+ * merge state (FR-PDF-05).
  */
 
 import type { TrackerExportRow } from "./excel";
@@ -14,13 +15,16 @@ const PAGE = { w: 595.28, h: 841.89 };
 const MARGIN = 48;
 const CONTENT_W = PAGE.w - MARGIN * 2;
 
-const INK = rgb(0.11, 0.13, 0.16);
-const MUTED = rgb(0.42, 0.45, 0.5);
+const INK = rgb(0.09, 0.11, 0.15);
+const MUTED = rgb(0.44, 0.47, 0.52);
 const LINE = rgb(0.85, 0.87, 0.89);
+const GRID = rgb(0.92, 0.93, 0.95);
+const CARD = rgb(0.965, 0.973, 0.98);
+const NAVY = rgb(0.055, 0.09, 0.16);
 const PRIMARY = rgb(0.1, 0.34, 0.86);
 const PURPLE = rgb(0.545, 0.361, 0.965);
 const GREEN = rgb(0.16, 0.6, 0.31);
-const SOFT = rgb(0.96, 0.97, 0.98);
+const WHITE = rgb(1, 1, 1);
 
 type Fonts = { regular: PDFFont; bold: PDFFont };
 
@@ -42,6 +46,29 @@ const bucketLabel = (key: string) => {
   );
 };
 
+function fmtTick(v: number, suffix?: string) {
+  const n = v >= 100 ? Math.round(v).toString() : String(Math.round(v * 10) / 10);
+  return `${n}${suffix ?? ""}`;
+}
+
+function istDate(d: Date) {
+  return d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+function cycleLabel(ms: number): string {
+  const minutes = Math.round(ms / 60_000);
+  const d = Math.floor(minutes / 1440);
+  const h = Math.floor((minutes % 1440) / 60);
+  const m = minutes % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function pct(n: number, total: number) {
+  return total > 0 ? Math.round((n / total) * 100) : 0;
+}
+
 export type PdfMeta = { generatedAt: Date };
 
 export async function buildPdfReport(
@@ -51,17 +78,26 @@ export async function buildPdfReport(
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle("Tracklet Analytics Report");
+  doc.setSubject(`Analytics for ${fmtDay(summary.range.from)} – ${fmtDay(summary.range.to)} (IST)`);
   doc.setCreator("Tracklet");
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const fonts: Fonts = { regular, bold };
 
-  let page = doc.addPage([PAGE.w, PAGE.h]);
+  let page: PDFPage = doc.addPage([PAGE.w, PAGE.h]);
   let y = PAGE.h - MARGIN;
 
   const text = (
     s: string,
-    o: { x?: number; y?: number; size?: number; font?: PDFFont; color?: typeof INK; align?: "right" | "center"; w?: number },
+    o: {
+      x?: number;
+      y?: number;
+      size?: number;
+      font?: PDFFont;
+      color?: RGB;
+      align?: "right" | "center";
+      w?: number;
+    },
   ) => {
     const size = o.size ?? 10;
     const font = o.font ?? regular;
@@ -73,26 +109,23 @@ export async function buildPdfReport(
         : o.align === "center"
           ? (o.x ?? MARGIN) + ((o.w ?? 0) - width) / 2
           : (o.x ?? MARGIN);
-    page.drawText(str, {
-      x,
-      y: o.y ?? y,
-      size,
-      font,
-      color: o.color ?? INK,
-    });
+    page.drawText(str, { x, y: o.y ?? y, size, font, color: o.color ?? INK });
   };
 
   const section = (title: string) => {
-    y -= 28;
+    y -= 26;
     text(title, { size: 11, font: bold });
-    y -= 6;
-    page.drawLine({
-      start: { x: MARGIN, y },
-      end: { x: PAGE.w - MARGIN, y },
-      thickness: 0.75,
-      color: LINE,
+    y -= 5;
+    // Short accent underline instead of a full-width rule — quieter, branded.
+    page.drawRectangle({ x: MARGIN, y, width: 26, height: 2, color: PRIMARY });
+    page.drawRectangle({
+      x: MARGIN + 26,
+      y,
+      width: CONTENT_W - 26,
+      height: 2,
+      color: GRID,
     });
-    y -= 14;
+    y -= 16;
   };
 
   const ensure = (needed: number) => {
@@ -102,173 +135,387 @@ export async function buildPdfReport(
     }
   };
 
-  // ---- Title block ---------------------------------------------------------
-  text("Tracklet Analytics Report", { size: 19, font: bold });
-  y -= 16;
-  text(
-    `Reporting period: ${fmtDay(summary.range.from)} – ${fmtDay(summary.range.to)} (IST)`,
-    { size: 9.5, color: MUTED },
-  );
-  y -= 12;
-  text(
-    `Generated ${meta.generatedAt.toLocaleString("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}`,
-    { size: 9.5, color: MUTED },
-  );
-  y -= 8;
-  page.drawLine({
-    start: { x: MARGIN, y },
-    end: { x: PAGE.w - MARGIN, y },
-    thickness: 1.2,
-    color: PRIMARY,
+  // ---- Branded header band -------------------------------------------------
+  const bandH = 74;
+  page.drawRectangle({ x: 0, y: PAGE.h - bandH, width: PAGE.w, height: bandH, color: NAVY });
+  // Brand mark: accent square + wordmark.
+  page.drawRectangle({ x: MARGIN, y: PAGE.h - 44, width: 16, height: 16, color: PRIMARY });
+  page.drawText("T", {
+    x: MARGIN + 4.5,
+    y: PAGE.h - 41,
+    size: 11,
+    font: bold,
+    color: WHITE,
   });
+  page.drawText(ascii("Tracklet"), {
+    x: MARGIN + 24,
+    y: PAGE.h - 42,
+    size: 13,
+    font: bold,
+    color: WHITE,
+  });
+  page.drawText(ascii("ANALYTICS REPORT"), {
+    x: MARGIN + 24,
+    y: PAGE.h - 56,
+    size: 7,
+    font: bold,
+    color: rgb(0.62, 0.7, 0.85),
+  });
+  const period = ascii(
+    `${fmtDay(summary.range.from)} – ${fmtDay(summary.range.to)} · IST`,
+  );
+  page.drawText(period, {
+    x: PAGE.w - MARGIN - bold.widthOfTextAtSize(period, 10),
+    y: PAGE.h - 38,
+    size: 10,
+    font: bold,
+    color: WHITE,
+  });
+  const generated = ascii(
+    `Generated ${meta.generatedAt.toLocaleString("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}`,
+  );
+  page.drawText(generated, {
+    x: PAGE.w - MARGIN - regular.widthOfTextAtSize(generated, 8),
+    y: PAGE.h - 52,
+    size: 8,
+    font: regular,
+    color: rgb(0.62, 0.7, 0.85),
+  });
+  y = PAGE.h - bandH - 6;
 
   // ---- Executive summary ---------------------------------------------------
   section("Executive summary");
-  const metrics: [string, string][] = [
-    ["Trackers started", String(summary.started)],
-    ["Trackers completed", String(summary.completed)],
-    ["Open trackers (now)", String(summary.openAgeDays.count)],
-    ["PR references submitted", String(summary.uniquePrs)],
-    ["Development", String(summary.development)],
-    ["Support", String(summary.support)],
+  const metrics: [string, string, RGB][] = [
+    ["Trackers started", String(summary.started), PRIMARY],
+    ["Trackers completed", String(summary.completed), GREEN],
+    ["Open trackers (now)", String(summary.openAgeDays.count), NAVY],
+    ["PR references submitted", String(summary.uniquePrs), PURPLE],
+    ["Development", String(summary.development), PRIMARY],
+    ["Support", String(summary.support), PURPLE],
     [
       "Average cycle time",
       summary.avgCycleTimeMinutes === null ? "—" : `${summary.avgCycleTimeMinutes} min`,
+      PRIMARY,
     ],
     [
       "Oldest open tracker",
       summary.openAgeDays.oldest === null ? "—" : `${summary.openAgeDays.oldest} days`,
+      NAVY,
     ],
   ];
-  const cellW = CONTENT_W / 4;
-  const cellH = 46;
-  metrics.forEach(([label, value], i) => {
+  const cardW = CONTENT_W / 4 - 8;
+  const cardH = 50;
+  metrics.forEach(([label, value, accent], i) => {
     const col = i % 4;
     const rowI = Math.floor(i / 4);
-    const x = MARGIN + col * cellW;
-    const cy = y - rowI * cellH;
-    page.drawRectangle({
-      x: x + 2,
-      y: cy - cellH + 8,
-      width: cellW - 4,
-      height: cellH - 8,
-      color: SOFT,
+    const x = MARGIN + col * (cardW + 8);
+    const cy = y - rowI * (cardH + 8);
+    page.drawRectangle({ x, y: cy - cardH, width: cardW, height: cardH, color: CARD });
+    page.drawRectangle({ x, y: cy - cardH, width: 2.5, height: cardH, color: accent });
+    page.drawText(ascii(label.toUpperCase()), {
+      x: x + 10,
+      y: cy - 15,
+      size: 6.2,
+      font: bold,
+      color: MUTED,
     });
-    text(label.toUpperCase(), { x: x + 10, y: cy - 12, size: 6.5, color: MUTED, font: bold });
-    text(value, { x: x + 10, y: cy - 30, size: 14, font: bold });
+    page.drawText(ascii(value), {
+      x: x + 10,
+      y: cy - 36,
+      size: 15,
+      font: bold,
+      color: INK,
+    });
   });
-  y -= Math.ceil(metrics.length / 4) * cellH + 4;
+  y -= Math.ceil(metrics.length / 4) * (cardH + 8) + 6;
 
-  // ---- Charts --------------------------------------------------------------
+  // ---- Chart helpers -------------------------------------------------------
   const buckets = summary.series;
+  const plotLabels = buckets.map((b) => bucketLabel(b.bucket));
   const maxOf = (get: (b: (typeof buckets)[number]) => number) =>
     Math.max(1, ...buckets.map(get));
 
-  // 1. Monthly tracker activity: started vs completed grouped bars (#1).
-  section("Monthly tracker activity (started vs completed)");
-  y = groupedBars(page, fonts, {
-    x: MARGIN,
-    y,
-    w: CONTENT_W,
-    h: 110,
-    labels: buckets.map((b) => bucketLabel(b.bucket)),
-    groups: buckets.map((b) => [
-      { v: b.started, color: PRIMARY },
-      { v: b.completed, color: GREEN },
-    ]),
-    max: maxOf((b) => Math.max(b.started, b.completed)),
-  });
-  y = legend(y, fonts, text, [
+  /** Gridlines + y-tick labels + x baseline. Returns scale helpers. */
+  const plotFrame = (
+    o: { x: number; y: number; w: number; h: number; max: number; suffix?: string },
+  ) => {
+    const steps = 4;
+    for (let k = 0; k <= steps; k++) {
+      const v = (o.max / steps) * k;
+      const gy = o.y - o.h + (v / o.max) * o.h;
+      page.drawLine({
+        start: { x: o.x, y: gy },
+        end: { x: o.x + o.w, y: gy },
+        thickness: k === 0 ? 0.9 : 0.5,
+        color: k === 0 ? LINE : GRID,
+      });
+      const label = fmtTick(v, o.suffix);
+      page.drawText(label, {
+        x: o.x - 6 - regular.widthOfTextAtSize(label, 6.5),
+        y: gy - 2.5,
+        size: 6.5,
+        font: regular,
+        color: MUTED,
+      });
+    }
+  };
+
+  const drawLegend = (items: { label: string; color: RGB }[]) => {
+    let x = MARGIN;
+    for (const item of items) {
+      page.drawRectangle({ x, y: y - 8.5, width: 6, height: 6, color: item.color });
+      x += 10;
+      text(item.label, { x, y, size: 8, color: MUTED });
+      x += regular.widthOfTextAtSize(ascii(item.label), 8) + 16;
+    }
+    y -= 14;
+  };
+
+  const CH = 104; // plot height for every chart — consistent rhythm
+
+  // 1. Monthly tracker activity: started vs completed grouped bars.
+  section("Monthly tracker activity");
+  {
+    const o = { x: MARGIN + 30, y, w: CONTENT_W - 30, h: CH };
+    const max = maxOf((b) => Math.max(b.started, b.completed));
+    plotFrame({ ...o, max });
+    const slot = o.w / Math.max(buckets.length, 1);
+    const barW = Math.min(13, (slot - 10) / 2);
+    buckets.forEach((b, i) => {
+      const cx = o.x + slot * i + slot / 2;
+      const series: [number, RGB][] = [
+        [b.started, PRIMARY],
+        [b.completed, GREEN],
+      ];
+      series.forEach(([v, color], j) => {
+        const barH = (v / max) * (o.h - 6);
+        const bx = cx - barW - 1.5 + j * (barW + 3);
+        if (v > 0) {
+          page.drawRectangle({ x: bx, y: o.y - o.h + barH, width: barW, height: barH, color });
+          const vs = String(v);
+          page.drawText(vs, {
+            x: bx + barW / 2 - regular.widthOfTextAtSize(vs, 6.5) / 2,
+            y: o.y - o.h + barH + 3,
+            size: 6.5,
+            font: regular,
+            color: INK,
+          });
+        }
+      });
+      textCentered(page, fonts, plotLabels[i] ?? "", cx, o.y - o.h - 12);
+    });
+    y = o.y - o.h - 24;
+  }
+  drawLegend([
     { label: "Started", color: PRIMARY },
     { label: "Completed", color: GREEN },
   ]);
 
-  // 2. Development vs Support distribution (#2/#6) — one stacked bar + legend.
+  // 2. Development vs Support distribution — split bar + share legend.
   section("Development vs Support (started in period)");
-  y = stackedBarRow(page, {
-    x: MARGIN,
-    y,
-    w: CONTENT_W,
-    development: summary.development,
-    support: summary.support,
-    total: summary.started,
-  });
-  y = legend(y - 6, fonts, text, [
-    { label: `Development — ${summary.development} · ${pct(summary.development, summary.started)}%`, color: PRIMARY },
-    { label: `Support — ${summary.support} · ${pct(summary.support, summary.started)}%`, color: PURPLE },
+  {
+    const barH = 22;
+    const devShare = summary.started > 0 ? summary.development / summary.started : 0;
+    page.drawRectangle({ x: MARGIN, y: y - barH, width: CONTENT_W, height: barH, color: CARD });
+    if (summary.development > 0) {
+      page.drawRectangle({
+        x: MARGIN,
+        y: y - barH,
+        width: CONTENT_W * devShare,
+        height: barH,
+        color: PRIMARY,
+      });
+    }
+    if (summary.support > 0) {
+      page.drawRectangle({
+        x: MARGIN + CONTENT_W * devShare,
+        y: y - barH,
+        width: CONTENT_W * (1 - devShare),
+        height: barH,
+        color: PURPLE,
+      });
+    }
+    if (summary.started > 0) {
+      // Segment labels inside the bar when they fit.
+      const devW = CONTENT_W * devShare;
+      text(`${summary.development} · ${pct(summary.development, summary.started)}%`, {
+        x: MARGIN,
+        y: y - barH / 2 - 3,
+        size: 8,
+        font: bold,
+        color: WHITE,
+        align: "center",
+        w: devW,
+      });
+      text(`${summary.support} · ${pct(summary.support, summary.started)}%`, {
+        x: MARGIN + devW,
+        y: y - barH / 2 - 3,
+        size: 8,
+        font: bold,
+        color: WHITE,
+        align: "center",
+        w: CONTENT_W - devW,
+      });
+    }
+    y -= barH + 14;
+  }
+  drawLegend([
+    { label: `Development — ${summary.development}`, color: PRIMARY },
+    { label: `Support — ${summary.support}`, color: PURPLE },
   ]);
 
-  // 3. Monthly PR activity (#3).
+  // 3. Monthly PR activity (references submitted, never "merged").
   section("PR references submitted per month");
-  y = barChart(page, fonts, {
-    x: MARGIN,
-    y,
-    w: CONTENT_W,
-    h: 100,
-    labels: buckets.map((b) => bucketLabel(b.bucket)),
-    values: buckets.map((b) => b.uniquePrs),
-    colors: buckets.map(() => PURPLE),
-    max: maxOf((b) => b.uniquePrs),
-  });
-
-  // 4. Completion trend (#4).
-  section("Completion trend");
-  y = lineChart(page, fonts, {
-    x: MARGIN,
-    y,
-    w: CONTENT_W,
-    h: 100,
-    labels: buckets.map((b) => bucketLabel(b.bucket)),
-    values: buckets.map((b) => b.completed),
-    color: GREEN,
-    max: maxOf((b) => b.completed),
-  });
-
-  // 5. Average cycle time (#9).
-  section("Average cycle time per month (completed trackers)");
-  const cycleValues = buckets.map((b) => b.avgCycleTimeMinutes);
-  if (cycleValues.some((v) => v !== null)) {
-    y = lineChart(page, fonts, {
-      x: MARGIN,
-      y,
-      w: CONTENT_W,
-      h: 100,
-      labels: buckets.map((b) => bucketLabel(b.bucket)),
-      values: cycleValues,
-      color: PRIMARY,
-      max: Math.max(1, ...cycleValues.filter((v): v is number => v !== null)),
-      ySuffix: "m",
+  {
+    const o = { x: MARGIN + 30, y, w: CONTENT_W - 30, h: CH };
+    const max = maxOf((b) => b.uniquePrs);
+    plotFrame({ ...o, max });
+    const slot = o.w / Math.max(buckets.length, 1);
+    const barW = Math.min(22, slot - 12);
+    buckets.forEach((b, i) => {
+      const cx = o.x + slot * i + slot / 2;
+      const barH = (b.uniquePrs / max) * (o.h - 6);
+      if (b.uniquePrs > 0) {
+        page.drawRectangle({
+          x: cx - barW / 2,
+          y: o.y - o.h + barH,
+          width: barW,
+          height: barH,
+          color: PURPLE,
+        });
+        const vs = String(b.uniquePrs);
+        page.drawText(vs, {
+          x: cx - regular.widthOfTextAtSize(vs, 6.5) / 2,
+          y: o.y - o.h + barH + 3,
+          size: 6.5,
+          font: regular,
+          color: INK,
+        });
+      }
+      textCentered(page, fonts, plotLabels[i] ?? "", cx, o.y - o.h - 12);
     });
-  } else {
-    text("No completed trackers in this period.", { size: 9, color: MUTED });
-    y -= 14;
+    y = o.y - o.h - 26;
   }
+
+  /** Line/area chart with haloed dots and value labels. */
+  const trendChart = (
+    title: string,
+    values: (number | null)[],
+    color: RGB,
+    ySuffix?: string,
+  ) => {
+    section(title);
+    const finite = values.filter((v): v is number => v !== null);
+    if (finite.length === 0) {
+      page.drawRectangle({ x: MARGIN, y: y - CH, width: CONTENT_W, height: CH, color: CARD });
+      text("No data in this period.", {
+        x: MARGIN,
+        y: y - CH / 2 - 3,
+        size: 9,
+        color: MUTED,
+        align: "center",
+        w: CONTENT_W,
+      });
+      y -= CH + 26;
+      return;
+    }
+    const o = { x: MARGIN + 30, y, w: CONTENT_W - 30, h: CH };
+    const max = Math.max(1, ...finite);
+    plotFrame({ ...o, max, suffix: ySuffix });
+    const inner = o.h - 8;
+    const pts = values.map((v, i) => ({
+      x: o.x + (o.w * i) / Math.max(values.length - 1, 1),
+      yy: o.y - o.h + 6 + ((v ?? 0) / max) * inner,
+      v,
+    }));
+    // Area fill under the line.
+    const filled = pts.filter((p) => p.v !== null);
+    if (filled.length >= 2) {
+      const first = filled[0]!;
+      const last = filled[filled.length - 1]!;
+      page.drawSvgPath(
+        `M ${first.x} ${first.yy} ` +
+          filled.slice(1).map((p) => `L ${p.x} ${p.yy}`).join(" ") +
+          ` L ${last.x} ${o.y - o.h} L ${first.x} ${o.y - o.h} Z`,
+        { borderColor: color, borderWidth: 0, color, opacity: 0.12 },
+      );
+    }
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1]!;
+      const b = pts[i]!;
+      if (a.v === null || b.v === null) continue;
+      page.drawLine({
+        start: { x: a.x, y: a.yy },
+        end: { x: b.x, y: b.yy },
+        thickness: 2.2,
+        color,
+      });
+    }
+    pts.forEach((p, i) => {
+      if (p.v === null) return;
+      page.drawCircle({ x: p.x, y: p.yy, size: 4, color: WHITE });
+      page.drawCircle({ x: p.x, y: p.yy, size: 2.6, color });
+      const vs = `${p.v}${ySuffix ?? ""}`;
+      page.drawText(vs, {
+        x: p.x - regular.widthOfTextAtSize(vs, 6.5) / 2,
+        y: p.yy + 6,
+        size: 6.5,
+        font: regular,
+        color: INK,
+      });
+      textCentered(page, fonts, plotLabels[i] ?? "", p.x, o.y - o.h - 12);
+    });
+    y = o.y - o.h - 26;
+  };
+
+  ensure(CH + 90);
+  trendChart("Completion trend", buckets.map((b) => b.completed), GREEN);
+
+  ensure(CH + 90);
+  trendChart(
+    "Average cycle time (completed trackers)",
+    buckets.map((b) => b.avgCycleTimeMinutes),
+    PRIMARY,
+    "m",
+  );
 
   // ---- Tracker appendix ----------------------------------------------------
   ensure(80);
   section("Tracker appendix");
   const cols = [
-    { label: "Ticket ID", x: 0, w: 96 },
-    { label: "Category", x: 96, w: 84 },
-    { label: "Start", x: 180, w: 66 },
-    { label: "Completed", x: 246, w: 66 },
-    { label: "Status", x: 312, w: 82 },
-    { label: "PRs", x: 394, w: 34 },
-    { label: "Cycle", x: 428, w: CONTENT_W - 428 },
+    { label: "Ticket ID", x: 0, w: 92 },
+    { label: "Category", x: 92, w: 82 },
+    { label: "Start", x: 174, w: 64 },
+    { label: "Completed", x: 238, w: 64 },
+    { label: "Status", x: 302, w: 82 },
+    { label: "PRs", x: 384, w: 32 },
+    { label: "Cycle", x: 416, w: CONTENT_W - 416 },
   ];
   const drawHead = () => {
-    page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_W, height: 16, color: SOFT });
+    page.drawRectangle({ x: MARGIN, y: y - 5, width: CONTENT_W, height: 17, color: PRIMARY });
     cols.forEach((c) =>
-      text(c.label, { x: MARGIN + c.x + 4, y, size: 7.5, font: bold, color: MUTED }),
+      page.drawText(c.label, {
+        x: MARGIN + c.x + 5,
+        y,
+        size: 7.5,
+        font: bold,
+        color: WHITE,
+      }),
     );
-    y -= 18;
+    y -= 19;
   };
-  drawHead();
-  for (const t of trackers) {
+  if (trackers.length === 0) {
+    text("No trackers started in this period.", { size: 9, color: MUTED });
+    y -= 16;
+  }
+  trackers.forEach((t, idx) => {
     if (y < MARGIN + 40) {
       page = doc.addPage([PAGE.w, PAGE.h]);
       y = PAGE.h - MARGIN;
       drawHead();
+    }
+    if (idx % 2 === 1) {
+      page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_W, height: 15, color: CARD });
     }
     const cycle = t.completedAt
       ? cycleLabel(t.completedAt.getTime() - t.startedAt.getTime())
@@ -283,10 +530,16 @@ export async function buildPdfReport(
       cycle,
     ];
     cols.forEach((c, i) =>
-      text(row[i] ?? "", { x: MARGIN + c.x + 4, y, size: 8, color: i === 0 ? INK : MUTED, font: i === 0 ? bold : regular }),
+      page.drawText(ascii(row[i] ?? ""), {
+        x: MARGIN + c.x + 5,
+        y,
+        size: 8,
+        font: i === 0 ? bold : regular,
+        color: i === 0 ? INK : MUTED,
+      }),
     );
-    y -= 14;
-  }
+    y -= 15;
+  });
 
   // ---- Footers with page numbers (FR-PDF-04) -------------------------------
   const pages = doc.getPages();
@@ -314,194 +567,6 @@ export async function buildPdfReport(
   return doc.save();
 }
 
-// ---------------------------------------------------------------- chart prims
-
-type Series = { v: number; color: ReturnType<typeof rgb> };
-
-function axes(
-  page: PDFPage,
-  fonts: Fonts,
-  o: { x: number; y: number; w: number; h: number; max: number; ySuffix?: string },
-) {
-  page.drawLine({
-    start: { x: o.x, y: o.y - o.h },
-    end: { x: o.x + o.w, y: o.y - o.h },
-    thickness: 0.8,
-    color: LINE,
-  });
-  // Y-axis: max label + gridline at half; enough for a print summary.
-  const suffix = o.ySuffix ?? "";
-  page.drawText(ascii(`${o.max}${suffix}`), {
-    x: o.x - 4 - fonts.regular.widthOfTextAtSize(`${o.max}${suffix}`, 6.5),
-    y: o.y - 4,
-    size: 6.5,
-    font: fonts.regular,
-    color: MUTED,
-  });
-  return o.max;
-}
-
-function groupedBars(
-  page: PDFPage,
-  fonts: Fonts,
-  o: {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    labels: string[];
-    groups: Series[][];
-    max: number;
-  },
-) {
-  const max = axes(page, fonts, o);
-  const slot = o.w / Math.max(o.groups.length, 1);
-  const barW = Math.min(14, (slot - 10) / 2);
-  o.groups.forEach((group, i) => {
-    const cx = o.x + slot * i + slot / 2;
-    group.forEach((s, j) => {
-      const barH = (s.v / max) * (o.h - 8);
-      if (s.v > 0) {
-        page.drawRectangle({
-          x: cx - barW - 1.5 + j * (barW + 3),
-          y: o.y - o.h + barH,
-          width: barW,
-          height: barH,
-          color: s.color,
-        });
-      }
-    });
-    textCentered(page, fonts, o.labels[i] ?? "", cx, o.y - o.h - 11);
-  });
-  return o.y - o.h - 24;
-}
-
-function barChart(
-  page: PDFPage,
-  fonts: Fonts,
-  o: {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    labels: string[];
-    values: number[];
-    colors: ReturnType<typeof rgb>[];
-    max: number;
-  },
-) {
-  const max = axes(page, fonts, o);
-  const slot = o.w / Math.max(o.values.length, 1);
-  const barW = Math.min(22, slot - 10);
-  o.values.forEach((v, i) => {
-    const cx = o.x + slot * i + slot / 2;
-    const barH = (v / max) * (o.h - 8);
-    if (v > 0) {
-      page.drawRectangle({
-        x: cx - barW / 2,
-        y: o.y - o.h + barH,
-        width: barW,
-        height: barH,
-        color: o.colors[i],
-      });
-    }
-    textCentered(page, fonts, o.labels[i] ?? "", cx, o.y - o.h - 11);
-  });
-  return o.y - o.h - 24;
-}
-
-function lineChart(
-  page: PDFPage,
-  fonts: Fonts,
-  o: {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    labels: string[];
-    values: (number | null)[];
-    color: ReturnType<typeof rgb>;
-    max: number;
-    ySuffix?: string;
-  },
-) {
-  const max = axes(page, fonts, o);
-  const inner = o.h - 8;
-  const pts = o.values
-    .map((v, i) => ({
-      x: o.x + (o.w * i) / Math.max(o.values.length - 1, 1),
-      yy: o.y - o.h + 4 + ((v ?? 0) / max) * inner,
-      v,
-      label: o.labels[i] ?? "",
-    }))
-    .filter((p) => p.v !== null);
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1]!;
-    const b = pts[i]!;
-    page.drawLine({
-      start: { x: a.x, y: a.yy },
-      end: { x: b.x, y: b.yy },
-      thickness: 2,
-      color: o.color,
-    });
-  }
-  pts.forEach((p) => {
-    page.drawCircle({ x: p.x, y: p.yy, size: 2.5, color: o.color });
-    textCentered(page, fonts, p.label, p.x, o.y - o.h - 11);
-  });
-  return o.y - o.h - 24;
-}
-
-function stackedBarRow(
-  page: PDFPage,
-  o: { x: number; y: number; w: number; development: number; support: number; total: number },
-) {
-  const barH = 18;
-  page.drawRectangle({
-    x: o.x,
-    y: o.y - barH,
-    width: o.w,
-    height: barH,
-    color: SOFT,
-  });
-  const devShare = o.total > 0 ? o.development / o.total : 0;
-  if (o.development > 0) {
-    page.drawRectangle({
-      x: o.x,
-      y: o.y - barH,
-      width: o.w * devShare,
-      height: barH,
-      color: PRIMARY,
-    });
-  }
-  if (o.support > 0) {
-    page.drawRectangle({
-      x: o.x + o.w * devShare,
-      y: o.y - barH,
-      width: o.w * (1 - devShare),
-      height: barH,
-      color: PURPLE,
-    });
-  }
-  return o.y - barH;
-}
-
-function legend(
-  y: number,
-  fonts: Fonts,
-  text: (s: string, o: { x?: number; y?: number; size?: number; font?: PDFFont; color?: typeof INK }) => void,
-  items: { label: string; color: ReturnType<typeof rgb> }[],
-) {
-  let x = 48;
-  for (const item of items) {
-    text("■", { x, y, size: 9, color: item.color });
-    x += 11;
-    text(item.label, { x, y, size: 8.5, color: MUTED });
-    x += fonts.regular.widthOfTextAtSize(ascii(item.label), 8.5) + 18;
-  }
-  return y - 16;
-}
-
 function textCentered(
   page: PDFPage,
   fonts: Fonts,
@@ -517,22 +582,4 @@ function textCentered(
     font: fonts.regular,
     color: MUTED,
   });
-}
-
-function pct(n: number, total: number) {
-  return total > 0 ? Math.round((n / total) * 100) : 0;
-}
-
-function istDate(d: Date) {
-  return d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-}
-
-function cycleLabel(ms: number): string {
-  const minutes = Math.round(ms / 60_000);
-  const d = Math.floor(minutes / 1440);
-  const h = Math.floor((minutes % 1440) / 60);
-  const m = minutes % 60;
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
 }
