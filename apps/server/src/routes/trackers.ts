@@ -93,27 +93,47 @@ trackers.get("/", async (c) => {
     const query = trackerListQuerySchema.parse(c.req.query());
 
     // Cursor pagination on (sort, id): stable while rows are inserted.
-    const sortValue = (t: Tracker) => {
-      const date =
-        query.sort === "completedAt"
-          ? (t.completedAt ?? t.startedAt)
-          : t[query.sort];
-      return date.getTime();
-    };
+    // Open trackers have no completedAt (they sort first in asc, last in
+    // desc on SQLite), so the cursor encodes null-ness and the resume filter
+    // addresses them explicitly — otherwise paging silently drops them.
+    const sortValue = (t: Tracker): string =>
+      query.sort === "completedAt"
+        ? t.completedAt
+          ? String(t.completedAt.getTime())
+          : "null"
+        : String(t[query.sort].getTime());
 
     let cursorFilter: object | undefined;
     if (query.cursor) {
-      const [msRaw, id] = atob(query.cursor).split("|");
-      const ms = Number(msRaw);
+      const [keyRaw, id] = atob(query.cursor).split("|");
       const cmp = query.order === "desc" ? "lt" : "gt";
+      const cursorDate = new Date(Number(keyRaw));
       // Wrapped in AND so it can't collide with the search OR below.
       cursorFilter = {
         AND: [
           {
-            OR: [
-              { [query.sort]: { [cmp]: new Date(ms) } },
-              { [query.sort]: new Date(ms), id: { [cmp]: id } },
-            ],
+            OR:
+              query.sort === "completedAt" && keyRaw === "null"
+                ? // Cursor on an open tracker: only later open trackers
+                  // follow it — plus every completed row in asc (nulls first).
+                  [
+                    { completedAt: null, id: { [cmp]: id } },
+                    ...(query.order === "asc"
+                      ? [{ completedAt: { not: null } }]
+                      : []),
+                  ]
+                : query.sort === "completedAt" && query.order === "desc"
+                  ? // Desc: open trackers sort last, so they are still pending
+                    // on every page — keep them in the stream.
+                    [
+                      { completedAt: { [cmp]: cursorDate } },
+                      { completedAt: cursorDate, id: { [cmp]: id } },
+                      { completedAt: null },
+                    ]
+                  : [
+                      { [query.sort]: { [cmp]: cursorDate } },
+                      { [query.sort]: cursorDate, id: { [cmp]: id } },
+                    ],
           },
         ],
       };

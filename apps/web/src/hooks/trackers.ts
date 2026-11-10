@@ -47,6 +47,7 @@ export const trackerKeys = {
   lists: () => [...trackerKeys.all, "list"] as const,
   list: (filters: TrackerFilters) => [...trackerKeys.lists(), filters] as const,
   detail: (id: string) => [...trackerKeys.all, "detail", id] as const,
+  analytics: () => [...trackerKeys.all, "analytics"] as const,
   dashboard: (from?: string, to?: string) =>
     ["dashboard", { from: from ?? null, to: to ?? null }] as const,
 };
@@ -132,7 +133,7 @@ export function analyticsQuery(
   granularity: "week" | "month" = "month",
 ) {
   return queryOptions({
-    queryKey: [...trackerKeys.all, "analytics", range.from, range.to, granularity] as const,
+    queryKey: [...trackerKeys.analytics(), range.from, range.to, granularity] as const,
     queryFn: () =>
       api<AnalyticsDTO>(
         `/analytics?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}&granularity=${granularity}`,
@@ -200,7 +201,14 @@ function removeCachedTracker(
   queryClient.removeQueries({ queryKey: trackerKeys.detail(id) });
 }
 
-export function useCreateTracker() {  const queryClient = useQueryClient();
+/** Every mutation moves the aggregates — keep dashboard + analytics honest. */
+function invalidateAggregates(queryClient: ReturnType<typeof useQueryClient>) {
+  void queryClient.invalidateQueries({ queryKey: trackerKeys.analytics() });
+  void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+}
+
+export function useCreateTracker() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: {
       jiraUrl: string;
@@ -211,9 +219,7 @@ export function useCreateTracker() {  const queryClient = useQueryClient();
     onSuccess: async (created) => {
       queryClient.setQueryData(trackerKeys.detail(created.id), created);
       await queryClient.invalidateQueries({ queryKey: trackerKeys.lists() });
-      await queryClient.invalidateQueries({
-        queryKey: ["dashboard"],
-      });
+      invalidateAggregates(queryClient);
     },
   });
 }
@@ -261,7 +267,7 @@ export function useUpdateTracker() {
       void queryClient.invalidateQueries({
         queryKey: trackerKeys.detail(input.id),
       });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidateAggregates(queryClient);
     },
   });
 }
@@ -274,7 +280,7 @@ export function useDeleteTracker() {
     onMutate: (id) => removeCachedTracker(queryClient, id),
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: trackerKeys.all });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidateAggregates(queryClient);
     },
   });
 }
@@ -290,7 +296,7 @@ export function useCompleteTracker() {
     onSuccess: (updated) => {
       patchCachedTracker(queryClient, updated);
       void queryClient.invalidateQueries({ queryKey: trackerKeys.lists() });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidateAggregates(queryClient);
     },
   });
 }
@@ -306,7 +312,7 @@ export function useAddPr() {
     onSuccess: (updated) => {
       patchCachedTracker(queryClient, updated);
       void queryClient.invalidateQueries({ queryKey: trackerKeys.lists() });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidateAggregates(queryClient);
     },
   });
 }
@@ -321,7 +327,7 @@ export function useDeletePr() {
     onSuccess: (updated) => {
       patchCachedTracker(queryClient, updated);
       void queryClient.invalidateQueries({ queryKey: trackerKeys.lists() });
-      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      invalidateAggregates(queryClient);
     },
   });
 }

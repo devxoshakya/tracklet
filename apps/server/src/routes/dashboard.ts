@@ -5,6 +5,7 @@ import { Hono } from "hono";
 
 import type { ApiEnv } from "../env.api";
 import { handleRoute } from "../lib/http";
+import { resolveRange } from "../lib/analytics";
 import { toTrackerDTO } from "./trackers";
 
 export const dashboard = new Hono<ApiEnv>();
@@ -25,12 +26,9 @@ dashboard.get("/", async (c) => {
     const userId = c.get("userId");
 
     const query = dashboardQuerySchema.parse(c.req.query());
-    const now = new Date();
-    // FR-DASH-02: default period is the current calendar month.
-    const from = query.from
-      ? new Date(query.from)
-      : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const to = query.to ? new Date(query.to) : now;
+    // FR-DASH-02: default period is the current IST calendar month — shared
+    // resolver with analytics (a plain UTC month here leaks a 5.5h skew).
+    const { from, to } = resolveRange(query, new Date());
 
     const startedInRange = {
       userId,
