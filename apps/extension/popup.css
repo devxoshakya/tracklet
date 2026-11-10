@@ -56,9 +56,9 @@ body {
 }
 
 #view {
-  padding: 14px;
+  padding: 16px;
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .status {
@@ -112,7 +112,24 @@ body {
   font-weight: 600;
   font-size: 12px;
   color: var(--ink);
-  margin-bottom: 5px;
+}
+
+/* Roomier sections: every control gets breathing room via the grid gap */
+section {
+  display: grid;
+  gap: 12px;
+}
+
+.preview {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ok);
+  letter-spacing: 0.02em;
+}
+
+.preview.bad {
+  color: var(--muted);
+  font-weight: 500;
 }
 
 input {
@@ -128,19 +145,6 @@ input:focus {
   outline: 2px solid var(--primary);
   outline-offset: -1px;
   background: #fff;
-}
-
-.preview {
-  margin-top: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ok);
-  letter-spacing: 0.02em;
-}
-
-.preview.bad {
-  color: var(--muted);
-  font-weight: 500;
 }
 
 .pills {
@@ -237,7 +241,6 @@ input:focus {
   gap: 4px;
   max-height: 168px;
   overflow-y: auto;
-  margin-top: 6px;
 }
 
 .list .empty {

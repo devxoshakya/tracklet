@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description:
     "Track Jira tickets and the GitHub pull requests that close them. Monthly stats, cycle time, and Excel & PDF exports.",
   icons: {
-    icon: "/icon.svg",
+    icon: "/favicon/favicon.svg",
   },
 };
 
