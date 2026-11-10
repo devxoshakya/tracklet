@@ -78,7 +78,7 @@ export async function buildPdfReport(
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle("Tracklet Analytics Report");
-  doc.setSubject(`Analytics for ${fmtDay(summary.range.from)} – ${fmtDay(summary.range.to)} (IST)`);
+  doc.setSubject(`Analytics for ${fmtDay(summary.range.from)}- ${fmtDay(summary.range.to)} (IST)`);
   doc.setCreator("Tracklet");
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -162,7 +162,7 @@ export async function buildPdfReport(
     color: rgb(0.62, 0.7, 0.85),
   });
   const period = ascii(
-    `${fmtDay(summary.range.from)} – ${fmtDay(summary.range.to)} · IST`,
+    `${fmtDay(summary.range.from)} - ${fmtDay(summary.range.to)} IST`,
   );
   page.drawText(period, {
     x: PAGE.w - MARGIN - bold.widthOfTextAtSize(period, 10),
@@ -194,12 +194,12 @@ export async function buildPdfReport(
     ["Support", String(summary.support), PURPLE],
     [
       "Average cycle time",
-      summary.avgCycleTimeMinutes === null ? "—" : `${summary.avgCycleTimeMinutes} min`,
+      summary.avgCycleTimeMinutes === null ? "-" : `${summary.avgCycleTimeMinutes} min`,
       PRIMARY,
     ],
     [
       "Oldest open tracker",
-      summary.openAgeDays.oldest === null ? "—" : `${summary.openAgeDays.oldest} days`,
+      summary.openAgeDays.oldest === null ? "-" : `${summary.openAgeDays.oldest} days`,
       NAVY,
     ],
   ];
@@ -235,14 +235,17 @@ export async function buildPdfReport(
   const maxOf = (get: (b: (typeof buckets)[number]) => number) =>
     Math.max(1, ...buckets.map(get));
 
-  /** Gridlines + y-tick labels + x baseline. Returns scale helpers. */
+  /** Gridlines + y-tick labels + x baseline. Returns the frame's max value. */
   const plotFrame = (
     o: { x: number; y: number; w: number; h: number; max: number; suffix?: string },
   ) => {
-    const steps = 4;
-    for (let k = 0; k <= steps; k++) {
-      const v = (o.max / steps) * k;
-      const gy = o.y - o.h + (v / o.max) * o.h;
+    // Integer tick steps — count axes must never show "1.5".
+    const step = Math.max(1, Math.ceil(o.max / 4));
+    const ticks = Math.ceil(o.max / step);
+    const frameMax = step * ticks;
+    for (let k = 0; k <= ticks; k++) {
+      const v = step * k;
+      const gy = o.y - o.h + (v / frameMax) * o.h;
       page.drawLine({
         start: { x: o.x, y: gy },
         end: { x: o.x + o.w, y: gy },
@@ -258,6 +261,7 @@ export async function buildPdfReport(
         color: MUTED,
       });
     }
+    return frameMax;
   };
 
   const drawLegend = (items: { label: string; color: RGB }[]) => {
@@ -278,7 +282,7 @@ export async function buildPdfReport(
   {
     const o = { x: MARGIN + 30, y, w: CONTENT_W - 30, h: CH };
     const max = maxOf((b) => Math.max(b.started, b.completed));
-    plotFrame({ ...o, max });
+    const frameMax = plotFrame({ ...o, max });
     const slot = o.w / Math.max(buckets.length, 1);
     const barW = Math.min(13, (slot - 10) / 2);
     buckets.forEach((b, i) => {
@@ -288,10 +292,11 @@ export async function buildPdfReport(
         [b.completed, GREEN],
       ];
       series.forEach(([v, color], j) => {
-        const barH = (v / max) * (o.h - 6);
+        // pdf-lib rectangles grow upward from y — y is the bar's bottom edge.
+        const barH = (v / frameMax) * (o.h - 6);
         const bx = cx - barW - 1.5 + j * (barW + 3);
         if (v > 0) {
-          page.drawRectangle({ x: bx, y: o.y - o.h + barH, width: barW, height: barH, color });
+          page.drawRectangle({ x: bx, y: o.y - o.h, width: barW, height: barH, color });
           const vs = String(v);
           page.drawText(vs, {
             x: bx + barW / 2 - regular.widthOfTextAtSize(vs, 6.5) / 2,
@@ -336,32 +341,30 @@ export async function buildPdfReport(
       });
     }
     if (summary.started > 0) {
-      // Segment labels inside the bar when they fit.
       const devW = CONTENT_W * devShare;
-      text(`${summary.development} · ${pct(summary.development, summary.started)}%`, {
-        x: MARGIN,
-        y: y - barH / 2 - 3,
-        size: 8,
-        font: bold,
-        color: WHITE,
-        align: "center",
-        w: devW,
-      });
-      text(`${summary.support} · ${pct(summary.support, summary.started)}%`, {
-        x: MARGIN + devW,
-        y: y - barH / 2 - 3,
-        size: 8,
-        font: bold,
-        color: WHITE,
-        align: "center",
-        w: CONTENT_W - devW,
-      });
+      // Segment labels only when they fit (WinAnsi-safe ASCII separators).
+      const segLabel = (count: number, x: number, w: number) => {
+        const label = count > 0 && w >= 70 ? `${count} - ${pct(count, summary.started)}%` : null;
+        if (label) {
+          text(label, {
+            x,
+            y: y - barH / 2 - 3,
+            size: 8,
+            font: bold,
+            color: WHITE,
+            align: "center",
+            w,
+          });
+        }
+      };
+      segLabel(summary.development, MARGIN, devW);
+      segLabel(summary.support, MARGIN + devW, CONTENT_W - devW);
     }
     y -= barH + 14;
   }
   drawLegend([
-    { label: `Development — ${summary.development}`, color: PRIMARY },
-    { label: `Support — ${summary.support}`, color: PURPLE },
+    { label: `Development - ${summary.development}`, color: PRIMARY },
+    { label: `Support - ${summary.support}`, color: PURPLE },
   ]);
 
   // 3. Monthly PR activity (references submitted, never "merged").
@@ -369,16 +372,16 @@ export async function buildPdfReport(
   {
     const o = { x: MARGIN + 30, y, w: CONTENT_W - 30, h: CH };
     const max = maxOf((b) => b.uniquePrs);
-    plotFrame({ ...o, max });
+    const frameMax = plotFrame({ ...o, max });
     const slot = o.w / Math.max(buckets.length, 1);
     const barW = Math.min(22, slot - 12);
     buckets.forEach((b, i) => {
       const cx = o.x + slot * i + slot / 2;
-      const barH = (b.uniquePrs / max) * (o.h - 6);
+      const barH = (b.uniquePrs / frameMax) * (o.h - 6);
       if (b.uniquePrs > 0) {
         page.drawRectangle({
           x: cx - barW / 2,
-          y: o.y - o.h + barH,
+          y: o.y - o.h,
           width: barW,
           height: barH,
           color: PURPLE,
@@ -421,11 +424,11 @@ export async function buildPdfReport(
     }
     const o = { x: MARGIN + 30, y, w: CONTENT_W - 30, h: CH };
     const max = Math.max(1, ...finite);
-    plotFrame({ ...o, max, suffix: ySuffix });
+    const frameMax = plotFrame({ ...o, max, suffix: ySuffix });
     const inner = o.h - 8;
     const pts = values.map((v, i) => ({
       x: o.x + (o.w * i) / Math.max(values.length - 1, 1),
-      yy: o.y - o.h + 6 + ((v ?? 0) / max) * inner,
+      yy: o.y - o.h + 6 + ((v ?? 0) / frameMax) * inner,
       v,
     }));
     // Area fill under the line.
@@ -455,14 +458,17 @@ export async function buildPdfReport(
       if (p.v === null) return;
       page.drawCircle({ x: p.x, y: p.yy, size: 4, color: WHITE });
       page.drawCircle({ x: p.x, y: p.yy, size: 2.6, color });
-      const vs = `${p.v}${ySuffix ?? ""}`;
-      page.drawText(vs, {
-        x: p.x - regular.widthOfTextAtSize(vs, 6.5) / 2,
-        y: p.yy + 6,
-        size: 6.5,
-        font: regular,
-        color: INK,
-      });
+      // Skip zero labels — a run of "0"s along the baseline is noise.
+      if (p.v > 0) {
+        const vs = `${p.v}${ySuffix ?? ""}`;
+        page.drawText(vs, {
+          x: p.x - regular.widthOfTextAtSize(vs, 6.5) / 2,
+          y: p.yy + 6,
+          size: 6.5,
+          font: regular,
+          color: INK,
+        });
+      }
       textCentered(page, fonts, plotLabels[i] ?? "", p.x, o.y - o.h - 12);
     });
     y = o.y - o.h - 26;
@@ -507,6 +513,8 @@ export async function buildPdfReport(
   if (trackers.length === 0) {
     text("No trackers started in this period.", { size: 9, color: MUTED });
     y -= 16;
+  } else {
+    drawHead();
   }
   trackers.forEach((t, idx) => {
     if (y < MARGIN + 40) {
@@ -519,12 +527,12 @@ export async function buildPdfReport(
     }
     const cycle = t.completedAt
       ? cycleLabel(t.completedAt.getTime() - t.startedAt.getTime())
-      : "—";
+      : "-";
     const row = [
       t.ticketId,
       t.category,
       istDate(t.startedAt),
-      t.completedAt ? istDate(t.completedAt) : "—",
+      t.completedAt ? istDate(t.completedAt) : "-",
       t.status,
       String(t.prs.length),
       cycle,
@@ -551,7 +559,7 @@ export async function buildPdfReport(
       color: LINE,
     });
     p.drawText(
-      ascii("PR references submitted — GitHub merge state is not verified."),
+      ascii("PR references submitted - GitHub merge state is not verified."),
       { x: MARGIN, y: MARGIN + 8, size: 7, font: regular, color: MUTED },
     );
     const label = `Page ${i + 1} of ${pages.length}`;
