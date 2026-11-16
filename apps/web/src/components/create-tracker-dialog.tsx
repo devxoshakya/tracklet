@@ -14,6 +14,7 @@ import {
 import { Button } from "@tracklet/ui/components/button";
 import { Input } from "@tracklet/ui/components/input";
 import { Label } from "@tracklet/ui/components/label";
+import { PlusIcon } from "lucide-react";
 
 import { useCreateTracker } from "@/hooks/trackers";
 import { ApiError } from "@/lib/api";
@@ -29,8 +30,9 @@ export default function CreateTrackerDialog() {
   return (
     <Dialog>
       <DialogTrigger
-        className="inline-flex h-10 cursor-pointer items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_2px_0_0_#0c3fd4,0_10px_20px_rgba(15,17,20,0.12)] transition-[transform,box-shadow] hover:-translate-y-px active:translate-y-0 active:shadow-none"
+        className="btn-3d btn-3d-primary inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
       >
+        <PlusIcon className="size-4" aria-hidden="true" />
         Create tracker
       </DialogTrigger>
       <DialogContent>

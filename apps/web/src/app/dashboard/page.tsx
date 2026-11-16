@@ -6,9 +6,18 @@ import { Suspense, useEffect, useState } from "react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  CalendarDaysIcon,
   CalendarIcon,
+  CheckCircle2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CircleDashedIcon,
+  CodeIcon,
+  GitPullRequestIcon,
+  LifeBuoyIcon,
+  ListIcon,
+  SearchIcon,
+  TimerIcon,
   XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +41,8 @@ import { Input } from "@tracklet/ui/components/input";
 import { Skeleton } from "@tracklet/ui/components/skeleton";
 
 import CreateTrackerDialog from "@/components/create-tracker-dialog";
+import Segmented from "@/components/segmented";
+import { KpiCard, AnimatedNumber } from "@/components/stat-card";
 import TrackersCalendar from "@/components/trackers-calendar";
 import { CategoryChip, StatusChip } from "@/components/tracker-chips";
 import { useDashboard, useTrackersList, istAnchor, istMonthRange } from "@/hooks/trackers";
@@ -40,8 +51,9 @@ import { formatDate, formatCycleTime } from "@/lib/format";
 
 /**
  * Dashboard (PRD FR-DASH-01..04) with the trackers list (FR-VIEW-01,
- * FR-SEARCH-01..06) inline — one page: summary cards, then the searchable,
- * filterable list. Create-tracker is a dialog; filters live in the URL.
+ * FR-SEARCH-01..06) inline — one page: summary hero + KPI row, then the
+ * searchable, filterable list. Create-tracker is a dialog; filters live in
+ * the URL.
  */
 export default function DashboardPage() {
   return (
@@ -81,94 +93,247 @@ function DashboardContent() {
   };
   const isCurrentMonth = !monthParam;
 
-  if (error instanceof ApiError) {
-    toast.error(error.message);
-  }
+  // Error toasts belong in an effect: firing them during render re-toasts on
+  // every re-render (and twice under StrictMode).
+  useEffect(() => {
+    if (error instanceof ApiError) toast.error(error.message);
+  }, [error]);
 
   const totals = data?.totals;
+  const t = {
+    total: totals?.total ?? 0,
+    completed: totals?.completed ?? 0,
+    open: totals?.open ?? 0,
+    development: totals?.development ?? 0,
+    support: totals?.support ?? 0,
+    uniquePrs: totals?.uniquePrs ?? 0,
+    avgCycleTimeMinutes: totals?.avgCycleTimeMinutes ?? null,
+  };
+  const completionRate = t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0;
 
-  const cards = [
-    { label: "Total trackers", value: totals?.total },
-    { label: "Completed", value: totals?.completed },
-    { label: "Open", value: totals?.open },
-    { label: "Development", value: totals?.development },
-    { label: "Support", value: totals?.support },
-    { label: "PR references", value: totals?.uniquePrs },
-  ] as const;
+  const monthLong = anchor.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const monthShort = anchor.toLocaleDateString(undefined, {
+    month: "long",
+    timeZone: "UTC",
+  });
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Header: kicker + title + month stepper + create */}
+      <header className="landing-rise rise-d1 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[.09em] text-primary">
+          <p className="text-[11px] font-bold uppercase tracking-[.09em] text-primary">
+            {monthLong} · IST
+          </p>
+          <h1 className="mt-1.5 text-[26px] font-extrabold leading-none tracking-[-.03em]">
+            Dashboard
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Every Jira ticket, tracked to done — {monthShort} at a glance.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="inline-flex h-10 items-center rounded-lg border border-border bg-card shadow-sm">
             <button
               type="button"
               aria-label="Previous month"
               onClick={() => setMonth(-1)}
-              className="flex size-5 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="focus-ring flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-l-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <ChevronLeftIcon className="size-3.5" />
+              <ChevronLeftIcon className="size-4" />
             </button>
-            {anchor.toLocaleDateString(undefined, {
-              month: "long",
-              year: "numeric",
-              timeZone: "UTC",
-            })}
+            <span
+              className="min-w-[8.5rem] px-1 text-center text-sm font-semibold tabular-nums tracking-[-.01em]"
+              aria-live="polite"
+            >
+              {monthLong}
+            </span>
             <button
               type="button"
               aria-label="Next month"
               onClick={() => setMonth(1)}
-              className="flex size-5 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="focus-ring flex size-10 shrink-0 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <ChevronRightIcon className="size-3.5" />
+              <ChevronRightIcon className="size-4" />
             </button>
             {!isCurrentMonth ? (
               <button
                 type="button"
                 onClick={resetMonth}
-                className="ml-1 cursor-pointer rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="focus-ring flex h-10 cursor-pointer items-center rounded-r-lg border-l border-border px-3 text-xs font-semibold text-primary transition-colors hover:bg-muted"
               >
                 Today
               </button>
             ) : null}
-          </p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-[-.04em]">
-            Dashboard
-          </h1>
-        </div>
-        <CreateTrackerDialog />
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        {cards.map(({ label, value }) => (
-          <div
-            key={label}
-            className="rounded-xl border border-border bg-card px-4 py-4"
-          >
-            <p className="text-[11px] font-bold uppercase tracking-[.09em] text-muted-foreground">
-              {label}
-            </p>
-            {isPending ? (
-              <Skeleton className="mt-2 h-7 w-10 rounded-md" />
-            ) : (
-              <p className="mt-1 text-2xl font-extrabold tabular-nums tracking-[-.03em]">
-                {value ?? 0}
-              </p>
-            )}
           </div>
-        ))}
-      </div>
+          <CreateTrackerDialog />
+        </div>
+      </header>
 
-      {/* Cycle time strip */}
-      <div className="rounded-xl border border-border bg-card px-5 py-4">
-        <p className="text-[11px] font-bold uppercase tracking-[.09em] text-muted-foreground">
-          Avg cycle time (completed this month)
-        </p>
-        <p className="mt-1 text-xl font-extrabold tabular-nums tracking-[-.03em]">
-          {formatCycleTime(totals?.avgCycleTimeMinutes ?? null)}
-        </p>
-      </div>
+      {/* Summary: hero panel + cycle time, grouped tighter than the page rhythm */}
+      <section
+        aria-label="Monthly summary"
+        className="landing-rise rise-d2 grid gap-3 lg:grid-cols-12"
+      >
+        {/* Hero: total + completed/open composition */}
+        <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 sm:p-6 lg:col-span-7">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-20 -top-24 size-56 rounded-full bg-primary/[.07] blur-3xl"
+          />
+          <div className="relative">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] font-bold uppercase tracking-[.09em] text-muted-foreground">
+                Trackers this month
+              </p>
+              <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-primary">
+                <ListIcon className="size-4" aria-hidden="true" />
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-end gap-x-10 gap-y-4">
+              <div>
+                {isPending ? (
+                  <Skeleton className="h-11 w-24 rounded-lg" />
+                ) : (
+                  <p className="text-[46px] font-extrabold leading-none tracking-[-.04em] tabular-nums">
+                    <AnimatedNumber value={t.total} />
+                  </p>
+                )}
+                <p className="mt-2 text-[13px] text-muted-foreground">
+                  Total trackers · {monthShort}
+                </p>
+              </div>
+              <div className="pb-0.5">
+                {isPending ? (
+                  <Skeleton className="h-8 w-20 rounded-lg" />
+                ) : (
+                  <>
+                    <p className="flex items-baseline gap-1.5 text-2xl font-extrabold leading-none tracking-[-.03em] tabular-nums">
+                      <GitPullRequestIcon
+                        className="size-4 translate-y-px text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <AnimatedNumber value={t.uniquePrs} />
+                    </p>
+                    <p className="mt-1.5 text-[13px] text-muted-foreground">
+                      PR references added
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Completed vs open split */}
+            <div className="mt-6">
+              {isPending ? (
+                <Skeleton className="h-2.5 w-full rounded-full" />
+              ) : (
+                <div
+                  className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted"
+                  role="img"
+                  aria-label={`${t.completed} completed, ${t.open} open of ${t.total} trackers`}
+                >
+                  <div
+                    className="bar-rise h-full bg-[#34a853] transition-[width] duration-500 ease-out"
+                    style={{ width: `${t.total ? (t.completed / t.total) * 100 : 0}%` }}
+                  />
+                  <div
+                    className="bar-rise h-full flex-1 bg-[#ff672f] transition-[width] duration-500 ease-out"
+                    style={{ width: `${t.total ? (t.open / t.total) * 100 : 0}%` }}
+                  />
+                </div>
+              )}
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#34a853]" aria-hidden="true" />
+                  {t.completed} completed
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#ff672f]" aria-hidden="true" />
+                  {t.open} open
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Cycle time */}
+        <div className="relative flex flex-col overflow-hidden rounded-xl border border-border bg-card p-5 sm:p-6 lg:col-span-5">
+          <TimerIcon
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-4 -right-3 size-32 text-foreground/[.04]"
+          />
+          <div className="relative flex items-center justify-between gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-[.09em] text-muted-foreground">
+              Avg cycle time
+            </p>
+            <span className="flex size-8 items-center justify-center rounded-lg bg-[#e7f5ec] text-[#1e7a3a] dark:bg-[#17301f] dark:text-[#6ee7a0]">
+              <TimerIcon className="size-4" aria-hidden="true" />
+            </span>
+          </div>
+          {isPending ? (
+            <Skeleton className="mt-4 h-10 w-28 rounded-lg" />
+          ) : (
+            <p className="relative mt-4 text-4xl font-extrabold leading-none tracking-[-.04em] tabular-nums">
+              <span
+                key={formatCycleTime(t.avgCycleTimeMinutes)}
+                className="stat-swap inline-block"
+              >
+                {formatCycleTime(t.avgCycleTimeMinutes)}
+              </span>
+            </p>
+          )}
+          <p className="relative mt-2.5 text-[13px] text-muted-foreground">
+            Start to close, averaged over completed trackers.
+          </p>
+          <p className="relative mt-auto pt-5 text-[13px] text-muted-foreground">
+            <CheckCircle2Icon
+              className="mr-1.5 inline size-4 -translate-y-px text-[#34a853]"
+              aria-hidden="true"
+            />
+            {t.completed} tracker{t.completed === 1 ? "" : "s"} completed in {monthShort}
+          </p>
+        </div>
+      </section>
+
+      {/* KPI satellites */}
+      <section
+        aria-label="Key numbers"
+        className="landing-rise rise-d3 grid grid-cols-2 gap-3 md:grid-cols-4"
+      >
+        <KpiCard
+          label="Completed"
+          icon={CheckCircle2Icon}
+          tone="green"
+          value={isPending ? undefined : t.completed}
+          foot={`${completionRate}% of all started`}
+        />
+        <KpiCard
+          label="Open"
+          icon={CircleDashedIcon}
+          tone="orange"
+          value={isPending ? undefined : t.open}
+          foot="in progress right now"
+        />
+        <KpiCard
+          label="Development"
+          icon={CodeIcon}
+          tone="primary"
+          value={isPending ? undefined : t.development}
+          foot="started this month"
+        />
+        <KpiCard
+          label="Support"
+          icon={LifeBuoyIcon}
+          tone="violet"
+          value={isPending ? undefined : t.support}
+          foot="started this month"
+        />
+      </section>
 
       <TrackersList anchor={anchor} />
     </div>
@@ -239,9 +404,7 @@ function TrackersList({ anchor }: { anchor: Date }) {
     completedFrom: dateValue("completedFrom")
       ? istDayStart(dateValue("completedFrom"))
       : undefined,
-    completedTo: dateValue("completedTo")
-      ? istDayEnd(dateValue("completedTo"))
-      : undefined,
+    completedTo: dateValue("completedTo") ? istDayEnd(dateValue("completedTo")) : undefined,
   };
   const { data, isPending, isError, error, fetchNextPage, isFetchingNextPage } =
     useTrackersList(filters);
@@ -261,15 +424,30 @@ function TrackersList({ anchor }: { anchor: Date }) {
   const setParam = (key: string, value: string | null) =>
     setParams({ [key]: value });
 
+  const anyFilter = Boolean(
+    searchInput || status || category || datesActive ||
+      sort !== "startedAt" || order !== "desc",
+  );
+
   return (
-    <section className="space-y-4">
+    <section className="landing-rise rise-d4 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-extrabold tracking-[-.03em]">Trackers</h2>
-        <PillGroup
-          options={["List", "Calendar"]}
-          labels={{ List: "List", Calendar: "Calendar" }}
-          value={view === "calendar" ? "Calendar" : "List"}
-          onChange={(v) => setParam("view", v === "Calendar" ? "calendar" : null)}
+        <div className="flex items-baseline gap-2.5">
+          <h2 className="text-base font-bold tracking-[-.02em]">All trackers</h2>
+          {!isPending ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+              {items.length}
+            </span>
+          ) : null}
+        </div>
+        <Segmented
+          ariaLabel="View"
+          value={view}
+          onChange={(v) => setParam("view", v === "calendar" ? "calendar" : null)}
+          options={[
+            { value: "list", label: "List", icon: ListIcon },
+            { value: "calendar", label: "Calendar", icon: CalendarDaysIcon },
+          ]}
         />
       </div>
 
@@ -278,28 +456,38 @@ function TrackersList({ anchor }: { anchor: Date }) {
       {view === "list" ? (
         <>
           {/* Search + filters */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search ticket ID or PR…"
-              className="h-9 w-64 rounded-lg border-border bg-card text-sm"
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-full sm:w-64">
+              <SearchIcon
+                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search ticket ID or PR…"
+                className="h-9 rounded-lg border-border bg-card pl-8 text-sm"
+              />
+            </div>
+            <Segmented
+              ariaLabel="Status filter"
+              value={status ?? "all"}
+              onChange={(v) => setParam("status", v === "all" ? null : v)}
+              options={[
+                { value: "all", label: "All" },
+                { value: "OPEN", label: "Open" },
+                { value: "COMPLETED", label: "Completed" },
+              ]}
             />
-            <PillGroup
-              options={["All", "OPEN", "COMPLETED"]}
-              labels={{ All: "All", OPEN: "Open", COMPLETED: "Completed" }}
-              value={status ?? "All"}
-              onChange={(v) => setParam("status", v === "All" ? null : v)}
-            />
-            <PillGroup
-              options={["All", "DEVELOPMENT", "SUPPORT"]}
-              labels={{
-                All: "All",
-                DEVELOPMENT: "Development",
-                SUPPORT: "Support",
-              }}
-              value={category ?? "All"}
-              onChange={(v) => setParam("category", v === "All" ? null : v)}
+            <Segmented
+              ariaLabel="Category filter"
+              value={category ?? "all"}
+              onChange={(v) => setParam("category", v === "all" ? null : v)}
+              options={[
+                { value: "all", label: "All" },
+                { value: "DEVELOPMENT", label: "Development" },
+                { value: "SUPPORT", label: "Support" },
+              ]}
             />
             {/* Sort (FR-SEARCH-05/06) — direction icon shown at rest too */}
             <Select
@@ -321,7 +509,12 @@ function TrackersList({ anchor }: { anchor: Date }) {
                 ) : (
                   <ArrowDownIcon className="size-3.5 text-muted-foreground" />
                 )}
-                <SelectValue />
+                {/* Explicit label: SelectValue falls back to the raw value
+                    ("startedAt-desc") before the portal items register. */}
+                <SelectValue>
+                  {SORT_OPTIONS.find((o) => o.value === `${sort}-${order}`)
+                    ?.field ?? "Started"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="min-w-40 rounded-lg text-sm">
                 {SORT_OPTIONS.map(({ value, field, dir }) => (
@@ -342,7 +535,7 @@ function TrackersList({ anchor }: { anchor: Date }) {
                 <PopoverTrigger
                   className={`inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60 ${
                     datesActive
-                      ? "border-primary/50 bg-primary/5 font-semibold text-foreground"
+                      ? "border-primary/50 bg-primary/5 font-medium text-foreground"
                       : "border-border bg-card text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -351,38 +544,26 @@ function TrackersList({ anchor }: { anchor: Date }) {
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
-                  className="w-auto max-w-[calc(100vw-2rem)] rounded-lg p-0"
+                  className="w-auto max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg p-0"
                 >
                   <div className="flex justify-center border-b border-border px-2.5 py-2">
-                    <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setDateBasis("started")}
-                        className={`cursor-pointer rounded-md px-2.5 py-1 text-[13px] transition-colors ${
-                          dateBasis === "started"
-                            ? "bg-primary/10 font-semibold text-primary"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Started
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDateBasis("completed")}
-                        className={`cursor-pointer rounded-md px-2.5 py-1 text-[13px] transition-colors ${
-                          dateBasis === "completed"
-                            ? "bg-[#e7f5ec] font-semibold text-[#1e7a3a] dark:bg-[#17301f] dark:text-[#6ee7a0]"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Completed
-                      </button>
-                    </div>
+                    <Segmented
+                      ariaLabel="Date basis"
+                      value={dateBasis}
+                      onChange={(v) => setDateBasis(v as "started" | "completed")}
+                      options={[
+                        { value: "started", label: "Started" },
+                        { value: "completed", label: "Completed" },
+                      ]}
+                    />
                   </div>
                   <Calendar
                     mode="range"
                     timeZone="Asia/Kolkata"
                     numberOfMonths={2}
+                    // Outside days would inherit the range band and read as
+                    // selected when they are only adjacent-month fill.
+                    showOutsideDays={false}
                     defaultMonth={activeRange.from}
                     selected={activeRange}
                     onSelect={(range) => {
@@ -419,85 +600,185 @@ function TrackersList({ anchor }: { anchor: Date }) {
                       completedTo: null,
                     })
                   }
-                  className="btn-3d inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-destructive text-white [--btn3d-edge:#7f1d1d] hover:opacity-90"
+                  className="btn-3d focus-ring inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-destructive text-white [--btn3d-edge:#7f1d1d] hover:opacity-90"
                 >
                   <XIcon className="size-4" />
                 </button>
               ) : null}
             </div>
+            {anyFilter && !isPending ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setParams({
+                    status: null,
+                    category: null,
+                    sort: null,
+                    order: null,
+                    startedFrom: null,
+                    startedTo: null,
+                    completedFrom: null,
+                    completedTo: null,
+                  });
+                }}
+                className="focus-ring cursor-pointer rounded-lg px-2 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-accent"
+              >
+                Clear all filters
+              </button>
+            ) : null}
           </div>
 
           {/* List */}
           <div className="overflow-hidden rounded-xl border border-border bg-card">
-        {isPending ? (
-          <div className="space-y-2 p-5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-11 w-full rounded-md" />
-            ))}
-          </div>
-        ) : isError ? (
-          <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : "Could not load trackers."}
-          </p>
-        ) : items.length === 0 ? (
-          <div className="px-5 py-14 text-center">
-            <p className="text-lg font-extrabold tracking-[-.03em]">
-              Nothing to track yet
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Paste a Jira ticket URL to create your first tracker.
-            </p>
-            <div className="mt-4 flex justify-center">
-              <CreateTrackerDialog />
-            </div>
-          </div>
-        ) : (
-          <>
-            <ul className="divide-y divide-border/60">
-              {items.map((t) => (
-                <li key={t.id}>
-                  <Link
-                    href={`/dashboard/trackers/${t.id}`}
-                    className="flex items-center gap-4 px-5 py-3 transition-colors hover:bg-muted/60"
-                  >
-                    <span className="w-28 shrink-0 text-sm font-extrabold tabular-nums tracking-[-.02em]">
-                      {t.ticketId}
-                    </span>
-                    <CategoryChip category={t.category} />
-                    <StatusChip status={t.status} />
-                    <span className="ml-auto hidden text-[13px] text-muted-foreground sm:block">
-                      {t.prCount} PR{t.prCount === 1 ? "" : "s"}
-                    </span>
-                    <span className="hidden text-[13px] text-muted-foreground md:block">
-                      Started {formatDate(t.startedAt)}
-                    </span>
-                    {t.status === "COMPLETED" ? (
-                      <span className="hidden text-[13px] text-muted-foreground lg:block">
-                        Cycle {formatCycleTime(t.cycleTimeMinutes)}
-                      </span>
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {data?.pages.at(-1)?.nextCursor ? (
-              <div className="border-t border-border px-5 py-3 text-center">
-                <button
-                  type="button"
-                  onClick={() => void fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                  className="cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-primary hover:bg-muted disabled:opacity-50"
-                >
-                  {isFetchingNextPage ? "Loading…" : "Load more"}
-                </button>
+            {isPending ? (
+              <div className="divide-y divide-border/60">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+                    <Skeleton className="h-4 w-24 rounded-sm" />
+                    <Skeleton className="h-[22px] w-[92px] rounded-md" />
+                    <Skeleton className="h-[22px] w-[80px] rounded-md" />
+                    <Skeleton className="ml-auto h-3.5 w-14 rounded-sm" />
+                    <Skeleton className="hidden h-3.5 w-32 rounded-sm md:block" />
+                  </div>
+                ))}
               </div>
-            ) : null}
-          </>
-        )}
-      </div>
+            ) : isError ? (
+              <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+                {error instanceof Error ? error.message : "Could not load trackers."}
+              </p>
+            ) : items.length === 0 ? (
+              <EmptyTrackers filtered={anyFilter} />
+            ) : (
+              <>
+                <ul className="divide-y divide-border/70">
+                  {items.map((t, i) => (
+                    <li
+                      key={t.id}
+                      className="row-rise"
+                      style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+                    >
+                      <Link
+                        href={`/dashboard/trackers/${t.id}`}
+                        className="group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/50 sm:gap-4 sm:px-5"
+                      >
+                        <span className="w-28 shrink-0 font-mono text-[13px] font-semibold tracking-[-.01em] text-foreground transition-transform duration-150 group-hover:translate-x-0.5">
+                          {t.ticketId}
+                        </span>
+                        <CategoryChip category={t.category} />
+                        <StatusChip status={t.status} />
+                        <span className="ml-auto hidden w-11 shrink-0 items-center justify-end gap-1.5 text-[13px] tabular-nums text-muted-foreground sm:flex">
+                          <GitPullRequestIcon
+                            className="size-3.5"
+                            aria-hidden="true"
+                          />
+                          {t.prCount}
+                        </span>
+                        <span className="hidden w-44 shrink-0 text-[13px] text-muted-foreground md:block">
+                          Started {formatDate(t.startedAt)}
+                        </span>
+                        {t.status === "COMPLETED" ? (
+                          <span className="hidden w-28 shrink-0 text-right text-[13px] tabular-nums text-muted-foreground lg:block">
+                            Cycle {formatCycleTime(t.cycleTimeMinutes)}
+                          </span>
+                        ) : (
+                          <span className="hidden w-28 shrink-0 lg:block" />
+                        )}
+                        <ChevronRightIcon
+                          aria-hidden="true"
+                          className="size-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100"
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {data?.pages.at(-1)?.nextCursor ? (
+                  <div className="border-t border-border px-5 py-3 text-center">
+                    <button
+                      type="button"
+                      onClick={() => void fetchNextPage()}
+                      disabled={isFetchingNextPage}
+                      className="focus-ring inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-accent disabled:opacity-50"
+                    >
+                      {isFetchingNextPage ? "Loading…" : "Load more"}
+                      <ChevronRightIcon className="size-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
         </>
       ) : null}
     </section>
+  );
+}
+
+/** Empty state (no trackers at all vs filters matching nothing). */
+function EmptyTrackers({ filtered = false }: { filtered?: boolean }) {
+  return (
+    <div className="px-5 py-14 text-center">
+      <svg
+        viewBox="0 0 120 88"
+        aria-hidden="true"
+        className="mx-auto h-20 w-auto text-border"
+      >
+        {/* Back card */}
+        <rect
+          x="26"
+          y="10"
+          width="68"
+          height="30"
+          rx="6"
+          className="fill-muted"
+        />
+        {/* Front card: a ticket */}
+        <rect
+          x="18"
+          y="26"
+          width="84"
+          height="42"
+          rx="6"
+          className="fill-card stroke-2"
+          stroke="currentColor"
+        />
+        <line
+          x1="18"
+          y1="38"
+          x2="102"
+          y2="38"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeDasharray="3 4"
+          opacity="0.7"
+        />
+        <rect x="28" y="48" width="30" height="6" rx="3" className="fill-accent" />
+        <rect x="28" y="58" width="44" height="5" rx="2.5" className="fill-muted" />
+        {/* Check badge */}
+        <circle cx="96" cy="64" r="11" className="fill-[#34a853]" />
+        <path
+          d="M91 64l3.2 3.2L101 60.4"
+          stroke="#fff"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+      <p className="mt-5 text-lg font-bold tracking-[-.02em]">
+        {filtered ? "No trackers match" : "Nothing to track yet"}
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {filtered
+          ? "Try a wider date range or different filters."
+          : "Paste a Jira ticket URL to create your first tracker."}
+      </p>
+      {!filtered ? (
+        <div className="mt-4 flex justify-center">
+          <CreateTrackerDialog />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -508,34 +789,3 @@ const SORT_OPTIONS = [
   { value: "completedAt-asc", field: "Completed", dir: "asc" },
   { value: "createdAt-desc", field: "Created", dir: "desc" },
 ] as const;
-
-function PillGroup({
-  options,
-  labels,
-  value,
-  onChange,
-}: {
-  options: string[];
-  labels: Record<string, string>;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
-      {options.map((option) => (
-        <button
-          key={option}
-          type="button"
-          onClick={() => onChange(option)}
-          className={`cursor-pointer rounded-md px-2.5 py-1 text-[13px] transition-colors ${
-            value === option
-              ? "bg-muted font-semibold text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {labels[option] ?? option}
-        </button>
-      ))}
-    </div>
-  );
-}

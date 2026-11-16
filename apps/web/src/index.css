@@ -1,4 +1,15 @@
-@import "@tracklet /ui/globals.css";
+@import "@tracklet/ui/globals.css";
+
+/* ---------------------------------------------------------------------------
+   Typography (design.md §3). app/layout.tsx loads the Geist pair as CSS
+   variables, but the UI kit's @theme maps --font-sans to "Inter Variable",
+   which nothing loads — the whole app silently renders in the system font.
+   Rebind the utilities to the fonts that are actually shipped.
+--------------------------------------------------------------------------- */
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
 
 /* ---------------------------------------------------------------------------
    Tracklet design tokens (docs/design.md §2).
@@ -136,5 +147,220 @@
   }
   .btn-3d:active:not(:disabled) {
     box-shadow: 0 0 0 0 var(--btn3d-edge), 0 2px 6px rgb(15 17 20 / 14%);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Blueprint scales (landing frame, design.md §4)
+   The diagonal hatch plus graduation ticks along the strip's inner edge, so
+   the frame reads as a measuring instrument rather than flat texture.
+   Ticks come in two weights: minor every 10px, major every 50px.
+--------------------------------------------------------------------------- */
+.scale-strip {
+  --scale-ink: #c9ced4;
+  --scale-tick: rgb(17 19 24 / 20%);
+
+  background-image: repeating-linear-gradient(
+    315deg,
+    var(--scale-ink) 0,
+    var(--scale-ink) 1px,
+    transparent 1px,
+    transparent 50%
+  );
+  background-size: 10px 10px;
+}
+.dark .scale-strip {
+  --scale-ink: #272c31;
+  --scale-tick: rgb(255 255 255 / 16%);
+}
+
+/* Ticks sit on one edge: b/t for horizontal strips, l/r for vertical ones */
+.scale-ticks-b,
+.scale-ticks-t,
+.scale-ticks-l,
+.scale-ticks-r {
+  background-repeat: repeat-x, repeat-x, repeat;
+}
+.scale-ticks-b,
+.scale-ticks-t {
+  background-image:
+    linear-gradient(90deg, var(--scale-tick) 0 1px, transparent 1px),
+    linear-gradient(90deg, var(--scale-tick) 0 1.5px, transparent 1.5px),
+    repeating-linear-gradient(
+      315deg,
+      var(--scale-ink) 0,
+      var(--scale-ink) 1px,
+      transparent 1px,
+      transparent 50%
+    );
+  background-size:
+    10px 6px,
+    50px 12px,
+    10px 10px;
+}
+.scale-ticks-b {
+  background-position:
+    0 100%,
+    0 100%,
+    0 0;
+}
+.scale-ticks-t {
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+}
+.scale-ticks-l,
+.scale-ticks-r {
+  background-image:
+    linear-gradient(180deg, var(--scale-tick) 0 1px, transparent 1px),
+    linear-gradient(180deg, var(--scale-tick) 0 1.5px, transparent 1.5px),
+    repeating-linear-gradient(
+      315deg,
+      var(--scale-ink) 0,
+      var(--scale-ink) 1px,
+      transparent 1px,
+      transparent 50%
+    );
+  background-size:
+    6px 10px,
+    12px 50px,
+    10px 10px;
+  background-repeat: repeat-y, repeat-y, repeat;
+}
+.scale-ticks-r {
+  background-position:
+    100% 0,
+    100% 0,
+    0 0;
+}
+.scale-ticks-l {
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Landing entrance (design.md §11: 120–200ms language, one choreography)
+   Pure CSS: staggered rise on the hero stack, a slow settle on the artwork,
+   and a drawn underline under the headline's payoff word. All of it is
+   scoped inside prefers-reduced-motion: no-preference, so reduced-motion
+   users get the finished frame immediately with nothing hidden.
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .landing-rise {
+    animation: landing-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .rise-d1 {
+    animation-delay: 0.05s;
+  }
+  .rise-d2 {
+    animation-delay: 0.15s;
+  }
+  .rise-d3 {
+    animation-delay: 0.3s;
+  }
+  .rise-d4 {
+    animation-delay: 0.45s;
+  }
+
+  .landing-art {
+    animation: landing-art 1.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* pathLength="1" on the path makes the dash math resolution-independent */
+  .landing-underline path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: landing-draw 0.55s cubic-bezier(0.4, 0, 0.2, 1) 0.85s forwards;
+  }
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes landing-art {
+  from {
+    transform: scale(1.05);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes landing-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   App chrome helpers (dashboard)
+--------------------------------------------------------------------------- */
+/* Focus ring for raw buttons that don't go through shadcn Button. Outline
+   (not box-shadow) so it never collides with the 3D button's edge shadow. */
+.focus-ring:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ring) 60%, transparent);
+  outline-offset: 2px;
+}
+
+/* Stat values: 160ms fade + 4px rise when the value changes (§11 language).
+   Pair with key={value} so React remounts the <p> on change. */
+@media (prefers-reduced-motion: no-preference) {
+  .stat-swap {
+    animation: stat-swap 160ms ease-out both;
+  }
+}
+@keyframes stat-swap {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* List rows: 400ms rise, staggered per row via an inline animation-delay. */
+@media (prefers-reduced-motion: no-preference) {
+  .row-rise {
+    animation: row-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes row-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Split bars (completed/open, dev/support): grow from the left edge. */
+@media (prefers-reduced-motion: no-preference) {
+  .bar-rise {
+    transform-origin: left center;
+    animation: bar-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes bar-rise {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Sparklines draw themselves in: pair with pathLength="1" on the path. */
+@media (prefers-reduced-motion: no-preference) {
+  .spark-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: spark-draw 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.25s forwards;
+  }
+}
+@keyframes spark-draw {
+  to {
+    stroke-dashoffset: 0;
   }
 }
