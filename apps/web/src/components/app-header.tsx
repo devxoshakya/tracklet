@@ -18,11 +18,11 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 md:px-6">
         <div className="flex items-center gap-6">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 text-[17px] font-extrabold tracking-[-.05em]"
+            className="focus-ring flex items-center gap-2 rounded-lg text-[17px] font-extrabold tracking-[-.05em]"
             aria-label="Tracklet home"
           >
             <BrandMark className="h-6 w-6" />
@@ -38,7 +38,7 @@ export default function AppHeader() {
                 <Link
                   key={href}
                   href={href}
-                  className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                  className={`focus-ring rounded-lg px-3 py-1.5 text-sm transition-colors ${
                     active
                       ? "bg-muted font-semibold text-foreground"
                       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"

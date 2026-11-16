@@ -33,7 +33,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-svh bg-background text-foreground">
       <AppHeader />
-      <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-8 md:px-6">{children}</main>
     </div>
   );
 }
